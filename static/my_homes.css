@@ -1,0 +1,79 @@
+/* ===== My Real Estate (homes) — CLEAN ===== */
+
+/* Panel: tylko bazowy układ kolumnowy; bez width !important (żeby działał resize) */
+#appPanel[data-panel="homes"]{
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Body panelu wypełnia resztę wysokości (scroll w środku) */
+#appPanel[data-panel="homes"] #appPanelBody{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* === Tabela: 2 kolumny (Name(+Address) | Actions) ===
+   WYMAGA <colgroup>:
+   <colgroup>
+     <col class="col-name-col">
+     <col class="actions-col">
+   </colgroup>
+*/
+#appPanel[data-panel="homes"] #homesTable{
+  width: 100%;
+  border-collapse: separate;
+  table-layout: fixed;                /* trzymamy się szerokości z <colgroup> */
+}
+
+/* Szerokości kolumn (sterujesz TU) */
+#appPanel[data-panel="homes"] #homesTable col.col-name-col{ width: 25%; }
+#appPanel[data-panel="homes"] #homesTable col.actions-col { width: 75%; }
+
+/* Komórka z nazwą i adresem — wrapper pozwala się zwężać do kolumny */
+#appPanel[data-panel="homes"] #homesTable td.col-name{
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+#appPanel[data-panel="homes"] #homesTable td.col-name .name-wrap{
+  display: block;
+  min-width: 0;                      /* KRYTYCZNE: zezwala zawartości się kurczyć */
+  overflow: hidden;
+}
+#appPanel[data-panel="homes"] #homesTable .prop-name{
+  font-weight: 700; line-height: 1.25;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#appPanel[data-panel="homes"] #homesTable .prop-addr{
+  margin-top: 2px; font-size: 12px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Komórka z akcjami — rząd przycisków obok siebie */
+#appPanel[data-panel="homes"] #homesTable td.actions-cell{
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 8px; align-items: center;
+  flex-wrap: wrap;                    /* jeśli ciasno — zawijaj kolejne rzędy */
+  overflow: visible;
+}
+
+/* Przyciski — przebicie globalnego .btn { width:100% } tylko TU */
+#appPanel[data-panel="homes"] #homesTable td.actions-cell .btn{
+  width: auto; flex: 0 0 auto; margin: 0;
+  white-space: nowrap; padding: 6px 10px;
+}
+
+/* Rząd ofert (Buyer’s offer … Accept … Your offer … Send) */
+#appPanel[data-panel="homes"] #homesTable .deal-row{
+  display: inline-flex; gap: 8px; align-items: center; white-space: nowrap;
+}
+#appPanel[data-panel="homes"] #homesTable .deal-row .input{ width: 110px; }
+
+/* Delikatnie: gdy tabela jest bardzo wąska, pozwól zawartości adresu „oddychać” */
+@media (max-width: 900px){
+  #appPanel[data-panel="homes"] #homesTable col.col-name-col{ width: 40%; }
+  #appPanel[data-panel="homes"] #homesTable col.actions-col { width: 60%; }
+}

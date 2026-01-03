@@ -1,0 +1,20 @@
+/* === Offers panel — scoped === */
+#offersPanel[data-panel="offers"] {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  width: 35vw;
+  max-width: 35vw;
+  height: 60vh;
+  max-height: 60vh;
+  top: 0;
+  /* left is handled by JS offset next to the left menu if you use dockLeft */
+  overflow: hidden;
+  margin: 0;
+  z-index: 1000;
+}
+
+#offersPanel[data-panel="offers"] .section-body {
+  overflow-y: auto;
+  max-height: calc(60vh - 64px);
+}

@@ -1,0 +1,226 @@
+/* ===== PANEL WIADOMOŚCI – FLEX, 3 NIEZALEŻNE SCROLLE ===== */
+
+/* Domyślnie niewidoczny */
+#appPanel[data-panel="messages"] {
+  display: none;
+}
+
+/* Widoczny gdy aktywny – wymuszamy flex nawet jeśli inline jest display:block */
+#appPanel[data-panel="messages"].is-open {
+  display: flex !important;
+}
+
+/* Główny panel po lewej – stała wysokość */
+#appPanel[data-panel="messages"].dock-left {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  width: clamp(720px, 35vw, 1200px);
+  height: 60vh;                 /* panel NIE zmienia wysokości */
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Nagłówek panelu */
+#appPanel[data-panel="messages"] .panel-header {
+  flex: 0 0 auto;
+}
+
+/* BODY panelu – kontener na siatkę 3 kolumn */
+#appPanel[data-panel="messages"] #appPanelBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 0 !important;     /* zabijamy margin-top:10px z HTML-a */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;             /* kontrola wysokości idzie niżej */
+}
+
+/* ===== 3 kolumny: GRUPY | WĄTKI | CZAT ===== */
+
+#appPanel[data-panel="messages"] .msgx {
+  flex: 1 1 auto;
+  min-height: 0;                /* kluczowe przy flex-babies */
+  display: flex;
+  gap: 12px;
+}
+
+/* Kolumna 1: GRUPY */
+#appPanel[data-panel="messages"] .msgx-col:nth-child(1) {
+  flex: 0 0 200px;              /* stała szerokość ~240px */
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Kolumna 2: WĄTKI */
+#appPanel[data-panel="messages"] .msgx-col:nth-child(2) {
+  flex: 0 0 200px;              /* stała szerokość ~320px */
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Kolumna 3: CZAT */
+#appPanel[data-panel="messages"] .msgx-col.msgx-chat {
+  flex: 1 1 auto;               /* reszta szerokości */
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ===== NAGŁÓWKI KOLUMN ===== */
+
+#appPanel[data-panel="messages"] .msgx-head,
+#appPanel[data-panel="messages"] .msgx-chat-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 700;
+}
+
+/* Dealbar w nagłówku czatu */
+#appPanel[data-panel="messages"] .msgx-dealbar {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ===== LISTY – SCROLL KOLUMN 1 i 2 ===== */
+
+#appPanel[data-panel="messages"] .msgx-list {
+  flex: 1 1 auto;               /* wypełnia resztę kolumny */
+  min-height: 0;
+  overflow-y: auto;             /* TU JEST SCROLL */
+  overflow-x: hidden;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Kafelki */
+#appPanel[data-panel="messages"] .msgx-item {
+  position: relative;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #0c172b;
+}
+#appPanel[data-panel="messages"] .msgx-item.active {
+  outline: 2px solid rgba(79,140,255,.35);
+}
+
+/* Badge (np. liczba nieprzeczytanych) */
+#appPanel[data-panel="messages"] .msgx-bang {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #e11d48;
+  color: #fff;
+  font-weight: 900;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== KOLUMNA CZATU – BODY + COMPOSER ===== */
+
+/* Środkowa część czatu – SCROLL WIADOMOŚCI */
+#appPanel[data-panel="messages"] .msgx-chat-body,
+#appPanel[data-panel="messages"] .msgx-chatbody { /* na wszelki wypadek druga nazwa */
+  flex: 1 1 auto;               /* wypełnia to, co zostaje między head a composerem */
+  min-height: 0;
+  overflow-y: auto;             /* TU JEST SCROLL WIADOMOŚCI */
+  overflow-x: hidden;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  background: #0b1220;
+}
+
+/* Bańki wiadomości */
+#appPanel[data-panel="messages"] .msgx-bubble {
+  max-width: 70%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  margin: 8px 0;
+  line-height: 1.35;
+}
+#appPanel[data-panel="messages"] .msgx-bubble.theirs {
+  background: #1d273d;
+  color: #e6ebf5;
+}
+#appPanel[data-panel="messages"] .msgx-bubble.mine {
+  background: #23406f;
+  color: #eef5ff;
+  margin-left: auto;
+}
+
+/* Composer – zawsze na dole kolumny czatu */
+#appPanel[data-panel="messages"] .msgx-composer {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border-top: 1px solid var(--border);
+  background: #0f1a2e;
+}
+#appPanel[data-panel="messages"] .msgx-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+#appPanel[data-panel="messages"] .msgx-compose-row {
+  display: flex;
+  gap: 8px;
+}
+#appPanel[data-panel="messages"] .msgx-input {
+  flex: 1;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #0c172b;
+  color: #fff;
+  padding: 6px 10px;
+}
+#appPanel[data-panel="messages"] .msgx-send {
+  height: 32px;
+  border-radius: 10px;
+  border: none;
+  padding: 0 12px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* Uchwyt poziomego resize – jak wcześniej */
+#appPanel[data-panel="messages"] .resize-handle-x {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 100%;
+  cursor: ew-resize;
+  z-index: 2000;
+  background: transparent;
+}
+#appPanel[data-panel="messages"] .resize-handle-x:hover {
+  background: rgba(255,255,255,.08);
+  opacity: .12;
+}

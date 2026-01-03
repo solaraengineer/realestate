@@ -1,0 +1,28 @@
+/* Stylizacja panelu logowania (#authPanel) tylko gdy data-panel="login" */
+#authPanel[data-panel="login"] {
+  position: fixed;
+  width: 35vw;
+  max-width: 35vw;
+  height: 60vh;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0;
+}
+
+/* Wewnêtrzna sekcja panelu (.panel-body) przewijalna wewn¹trz kontenera */
+#authPanel[data-panel="login"] .panel-body {
+  height: 60vh;
+  overflow-y: auto;
+}
+
+/* Opcjonalnie: Dopasowanie panelu do mniejszych ekranów (mobile) */
+@media (max-width: 900px) {
+  #authPanel[data-panel="login"] {
+    width: 90vw;
+    max-width: 90vw;
+    height: 60vh;
+    max-height: 60vh;
+  }
+}

@@ -1,0 +1,246 @@
+:root {
+  --bg: #0b1220;
+  --card: #101828;
+  --muted: #9aa4b2;
+  --text: #eef2f6;
+  --accent: #4f8cff;
+  --accent-hover: #3b78ef;
+  --border: #1f2a44;
+  --success: #19c37d;
+  --shadow: 0 10px 25px rgba(0,0,0,.35);
+  --radius: 16px;
+  --menu-width: 260px;
+  --gap: 32px;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+#cesiumContainer {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* MENU (panel lewy) */
+.menu-panel {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 50;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  width: var(--menu-width);
+  padding: 12px;
+  font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+.menu-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.menu-title { font-weight: 700; user-select: none; }
+.toggle {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+.section { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #0c172b;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.section-title { font-weight: 600; }
+.section-body { margin-top: 10px; display: none; }
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  background: #0c172b;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.btn {
+  width: 100%;
+  margin-top: 8px;
+  border: none;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn:hover { background: var(--accent-hover); }
+
+/* WSPÓLNE PANELE (prawe) */
+.side-panel {
+  position: absolute;
+  top: 16px;
+  left: calc(16px + var(--menu-width) + var(--gap));
+  z-index: 60;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  width: 420px;
+  padding: 14px;
+  display: none;
+  font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+.panel-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.panel-title  { font-weight: 700; font-size: 16px; }
+.panel-close  {
+  background: transparent; border: 1px solid var(--border); color: var(--muted);
+  padding: 6px 10px; border-radius: 10px; cursor: pointer;
+}
+
+/* OFERTY */
+.offers-panel .section {
+  background: #0c172b; border: 1px solid var(--border); border-radius: 12px;
+  padding: 10px; margin-top: 12px; box-shadow: inset 0 0 8px rgba(0,0,0,.3);
+}
+.offers-panel .section-title { font-weight: 700; font-size: 15px; cursor: pointer; }
+.offers-panel .section-header-row { display: flex; justify-content: space-between; align-items: center; }
+.close-btn {
+  background: transparent; border: 1px solid var(--border); color: var(--muted);
+  padding: 4px 8px; border-radius: 6px; cursor: pointer; margin-left: 8px;
+}
+.close-btn:hover { border-color: var(--accent); color: var(--text); }
+
+.range-inline {
+  display: grid; grid-template-columns: auto 1fr auto 1fr;
+  gap: 8px; align-items: center; margin: 8px 0 6px;
+}
+.offers-panel #saleBody    { background: rgba(79,140,255,.15);  border-radius: 10px; padding: 6px; }
+.offers-panel #auctionBody { background: rgba(25,195,125,.15); border-radius: 10px; padding: 6px; }
+.toggle-btn {
+  width: 100%; background: #0c172b; border: 1px solid var(--border);
+  color: var(--text); border-radius: 10px; padding: 10px 12px; cursor: pointer; text-align: left; margin-top: 8px;
+}
+.toggle-btn[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+
+.list { margin-top: 10px; display: grid; gap: 8px; }
+.list-item {
+  display: flex; align-items: center; justify-content: space-between;
+  border: 1px solid var(--border); border-radius: 10px; padding: 10px; background: #0c172b;
+}
+
+/* DROBNICA */
+#toast {
+  display: none; position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px;
+  background: var(--success); color: #042b1b; font-weight: 700; padding: 10px 14px;
+  border-radius: 999px; box-shadow: var(--shadow); z-index: 99;
+}
+.cesium-viewer-animationContainer,
+.cesium-viewer-timelineContainer,
+.cesium-viewer-bottom { display: none !important; }
+
+/* Feature Panel (prawy) */
+.feature-panel{
+  position:absolute; top:16px; right:16px; z-index:70; width:380px;
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:14px; display:none;
+  font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+}
+.feature-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.feature-title{font-weight:700;font-size:16px}
+.feature-close{background:transparent;border:1px solid var(--border);color:var(--muted);
+  padding:6px 10px;border-radius:10px;cursor:pointer}
+.props{
+  margin-top:10px;background:#0c172b;border:1px solid var(--border);border-radius:10px;
+  padding:10px;max-height:42vh;overflow:auto
+}
+.prop{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px dashed #1f2a44}
+.prop .k{color:var(--muted);font-size:12px}
+.feature-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);
+  padding:10px 12px;border-radius:10px;cursor:pointer}
+.btn-ghost:hover{border-color:var(--accent)}
+/* Dokowanie panelu w miejsce menu (lewy slot) */
+.side-panel.dock-left { left: 16px; width: var(--menu-width); }
+
+
+/* zawsze trzymaj Close po prawej w headerach paneli */
+.side-panel .panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;  /* ⬅ nadpisuje wcześniejsze space-between */
+}
+.side-panel .panel-header .panel-title { margin-right: auto; }
+.side-panel .panel-header .panel-close { margin-left: auto; }
+
+/* ——— TYLKO TEN BLOK ———
+   Ustaw nagłówki paneli jako grid: [tytuł | Close].
+   Gwarantuje, że Close ZAWSZE będzie po prawej i wyśrodkowany pionowo.
+*/
+
+/* appPanel / authPanel / viewpoints (mają .panel-header) */
+.side-panel .panel-header{
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  align-items: center !important;
+}
+.side-panel .panel-header .panel-title{ margin:0 !important; }
+.side-panel .panel-header .panel-close{
+  justify-self: end !important;
+  position: static !important;     /* skasuj wcześniejsze position:absolute */
+  top: auto !important; right: auto !important; transform: none !important;
+  margin: 0 !important; width: auto !important;
+}
+
+/* Oferty (mają .section-header-row + .close-btn) */
+.offers-panel .section-header-row{
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  align-items: center !important;
+}
+.offers-panel .section-header-row .section-title{ margin:0 !important; }
+.offers-panel .section-header-row .close-btn{
+  justify-self: end !important;
+  position: static !important; top:auto !important; right:auto !important; transform:none !important;
+  margin: 0 !important; width: auto !important;
+}
+
+/* Feature panel (prawy, ma .feature-header + .feature-close) */
+.feature-panel .feature-header{
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  align-items: center !important;
+}
+.feature-panel .feature-header .feature-title{ margin:0 !important; }
+.feature-panel .feature-header .feature-close{
+  justify-self: end !important;
+  position: static !important; top:auto !important; right:auto !important; transform:none !important;
+  margin: 0 !important; width: auto !important;
+}
+
+
+/* WIELKI ADMIN – nagłówek: tytuł po lewej, X po prawej */
+#appPanel[data-panel="admin"] .panel-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+#appPanel[data-panel="admin"] .panel-title {
+  margin-right: auto !important;
+}
+
+#appPanel[data-panel="admin"] .panel-close {
+  margin-left: auto !important;
+}
+
