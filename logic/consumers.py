@@ -1,94 +1,54 @@
-# logic/consumers.py
-import json
+import uuid
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.utils import timezone
 
 from .models import DirectChatMessage, Friend, BlockedUser, ChatSettings, SavedChat
-from django.utils import timezone
-import uuid
 
 User = get_user_model()
 
 
 class DirectChatConsumer(AsyncJsonWebsocketConsumer):
-    """
-    WebSocket dla prostego czatu 1:1.
-    """
 
     async def connect(self):
-        user = self.scope.get("user")
-        if not user or user.is_anonymous:
-            await self.close()
-            return
+        self.user = self.scope.get("user")
+        if not self.user or self.user.is_anonymous:
+            return await self.close()
 
-        self.user = user
-        self.user_group = f"user_{user.id}"
+        self.group = f"user_{self.user.id}"
+        await self.channel_layer.group_add(self.group, self.channel_name)
 
-        await self.channel_layer.group_add(self.user_group, self.channel_name)
         await self.accept()
 
-        await self.send_json({
-            "type": "connection.ack",
-            "user_id": self.user.id,
-            "username": self.user.username,
-        })
+        await self.send_json({"type": "connection.ack", "user_id": self.user.id, "username": self.user.username})
 
     async def disconnect(self, code):
-        if hasattr(self, "user_group"):
-            await self.channel_layer.group_discard(self.user_group, self.channel_name)
+        if hasattr(self, "group"):
+            await self.channel_layer.group_discard(self.group, self.channel_name)
 
     async def receive_json(self, content, **kwargs):
-        msg_type = content.get("type")
-
-        if msg_type == "message.send":
-            await self._handle_message_send(content)
+        if content.get("type") == "message.send":
+            await self._send_message(content)
         else:
-            await self.send_json({
-                "type": "error",
-                "error": "UNKNOWN_TYPE",
-            })
+            await self.send_json({"type": "error", "error": "UNKNOWN_TYPE"})
 
-    # --- message.send ---
-
-    async def _handle_message_send(self, content):
-        """
-        {type: "message.send", to: <user_id>, text: "..."}
-        """
+    async def _send_message(self, content):
         to_id = content.get("to")
-
-        raw_text = content.get("text")
-        if isinstance(raw_text, str):
-            text = raw_text.strip()
-        elif raw_text is None:
-            text = ""
-        else:
-            text = str(raw_text).strip()
+        text = (content.get("text") or "").strip() if isinstance(content.get("text"), str) else ""
 
         if not to_id or not text:
-            await self.send_json({
-                "type": "message.error",
-                "error": "MISSING_TO_OR_TEXT",
-            })
-            return
+            return await self.send_json({"type": "message.error", "error": "MISSING_TO_OR_TEXT"})
 
         try:
-            to_id_int = int(to_id)
+            to_id = int(to_id)
         except (TypeError, ValueError):
-            await self.send_json({
-                "type": "message.error",
-                "error": "BAD_TO_ID",
-            })
-            return
+            return await self.send_json({"type": "message.error", "error": "BAD_TO_ID"})
 
-        result = await self._create_message(self.user.id, to_id_int, text)
-        if result.get("error"):
-            await self.send_json({
-                "type": "message.error",
-                **result,
-            })
-            return
+        result = await self._create_message(self.user.id, to_id, text)
+
+        if "error" in result:
+            return await self.send_json({"type": "message.error", "error": result["error"]})
 
         msg = result["message"]
         payload = {
@@ -99,28 +59,11 @@ class DirectChatConsumer(AsyncJsonWebsocketConsumer):
             "created_at": msg.created_at.isoformat(),
         }
 
-        # do siebie
-        await self.channel_layer.group_send(
-            self.user_group,
-            {"type": "chat.message", "message": payload},
-        )
-        # do odbiorcy
-        other_group = f"user_{msg.receiver_id}"
-        await self.channel_layer.group_send(
-            other_group,
-            {"type": "chat.message", "message": payload},
-        )
+        await self.channel_layer.group_send(self.group, {"type": "chat.message", "message": payload})
+        await self.channel_layer.group_send(f"user_{msg.receiver_id}", {"type": "chat.message", "message": payload})
 
     @database_sync_to_async
-    def _create_message(self, from_id: int, to_id: int, text: str):
-        """
-        Tworzy wiadomość 1:1 z uwzględnieniem:
-        - blokad (BlockedUser),
-        - reject_strangers (ChatSettings),
-        - SavedChat (czy zapisywać w DB, czy tylko ulotnie).
-
-        Logika zapisu/ulotności jest spójna z widokiem chat_send.
-        """
+    def _create_message(self, from_id, to_id, text):
         try:
             sender = User.objects.get(id=from_id)
             receiver = User.objects.get(id=to_id)
@@ -130,54 +73,26 @@ class DirectChatConsumer(AsyncJsonWebsocketConsumer):
         if sender.id == receiver.id:
             return {"error": "CANNOT_MESSAGE_SELF"}
 
-        # blokada: jeśli odbiorca zablokował nadawcę
         if BlockedUser.objects.filter(owner=receiver, blocked=sender).exists():
             return {"error": "BLOCKED_BY_USER"}
 
-        # reject_strangers – ustawienie odbiorcy
-        try:
-            settings_obj = ChatSettings.objects.get(user=receiver)
-        except ChatSettings.DoesNotExist:
-            settings_obj = None
-
-        if settings_obj and settings_obj.reject_strangers:
-            is_friend = Friend.objects.filter(owner=receiver, friend=sender).exists()
-            if not is_friend:
+        settings = ChatSettings.objects.filter(user=receiver).first()
+        if settings and settings.reject_strangers:
+            if not Friend.objects.filter(owner=receiver, friend=sender).exists():
                 return {"error": "REJECT_STRANGERS"}
 
-        # Czy którakolwiek ze stron ma włączone "save" na tę relację?
-        persist = (
-            SavedChat.objects.filter(owner=sender, peer=receiver).exists()
-            or SavedChat.objects.filter(owner=receiver, peer=sender).exists()
-        )
+        should_persist = SavedChat.objects.filter(
+            owner__in=[sender, receiver],
+            peer__in=[sender, receiver]
+        ).exclude(owner=sender, peer=sender).exists()
 
-        if persist:
-            # normalnie zapisujemy w DB
-            msg = DirectChatMessage.objects.create(
-                sender=sender,
-                receiver=receiver,
-                text=text,
-            )
+        if should_persist:
+            msg = DirectChatMessage.objects.create(sender=sender, receiver=receiver, text=text)
         else:
-            # wiadomość tylko "ulotna" – nie zapisujemy w DB,
-            # ale nadajemy id/timestamp, żeby UI miał spójne dane
-            msg = DirectChatMessage(
-                sender=sender,
-                receiver=receiver,
-                text=text,
-            )
-            msg.id = uuid.uuid4()
-            msg.created_at = timezone.now()
+            msg = DirectChatMessage(id=uuid.uuid4(), sender=sender, receiver=receiver, text=text,
+                                    created_at=timezone.now())
 
         return {"message": msg}
 
-    # --- event z grupy ---
-
     async def chat_message(self, event):
-        """
-        Wywoływane przez group_send(..., {"type": "chat.message", "message": ...})
-        """
-        await self.send_json({
-            "type": "message.new",
-            "message": event["message"],
-        })
+        await self.send_json({"type": "message.new", "message": event["message"]})

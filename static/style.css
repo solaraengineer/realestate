@@ -1,246 +1,665 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SOLARA UI - Horizontal Navbar + Centered Panels
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 :root {
-  --bg: #0b1220;
-  --card: #101828;
-  --muted: #9aa4b2;
-  --text: #eef2f6;
-  --accent: #4f8cff;
-  --accent-hover: #3b78ef;
-  --border: #1f2a44;
-  --success: #19c37d;
-  --shadow: 0 10px 25px rgba(0,0,0,.35);
-  --radius: 16px;
-  --menu-width: 260px;
-  --gap: 32px;
+  --glass: rgba(10, 10, 15, 0.8);
+  --glass-light: rgba(255, 255, 255, 0.04);
+  --glass-hover: rgba(255, 255, 255, 0.08);
+
+  --border: rgba(255, 255, 255, 0.1);
+  --border-hover: rgba(255, 255, 255, 0.2);
+
+  --text: #fff;
+  --text-dim: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.4);
+
+  --accent: #a78bfa;
+  --accent-bg: rgba(167, 139, 250, 0.15);
+
+  --danger: #f87171;
+  --danger-bg: rgba(248, 113, 113, 0.15);
+
+  --shadow:
+    0 4px 24px rgba(0, 0, 0, 0.5),
+    0 12px 48px rgba(0, 0, 0, 0.4);
+
+  --shadow-lg:
+    0 8px 40px rgba(0, 0, 0, 0.6),
+    0 24px 80px rgba(0, 0, 0, 0.5);
+
+  --blur: 24px;
+  --r: 14px;
+  --r-sm: 8px;
+  --r-full: 9999px;
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration: 0.3s;
 }
 
 html, body {
   height: 100%;
-  margin: 0;
-  background: var(--bg);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #000;
   color: var(--text);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 #cesiumContainer {
   width: 100%;
-  height: 100%;
-  display: block;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 0;
 }
 
-/* MENU (panel lewy) */
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOP NAVBAR - HORIZONTAL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 .menu-panel {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  z-index: 50;
-  background: var(--card);
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  background: var(--glass);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--r-full);
   box-shadow: var(--shadow);
-  width: var(--menu-width);
-  padding: 12px;
-  font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+  z-index: 1000;
 }
-.menu-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.menu-title { font-weight: 700; user-select: none; }
-.toggle {
-  background: transparent;
-  color: var(--muted);
-  border: 1px solid var(--border);
-  cursor: pointer;
+
+.menu-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 10px;
+  border-right: 1px solid var(--border);
+  margin-right: 4px;
+}
+
+.menu-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  padding-left: 8px;
+}
+
+/* Hide toggle button - menu always open in horizontal mode */
+#menuToggle {
+  display: none;
+}
+
+#userInfo {
+  padding: 6px 14px !important;
   font-size: 12px;
-  padding: 6px 10px;
-  border-radius: 10px;
+  font-weight: 600;
+  color: var(--accent) !important;
+  background: var(--accent-bg);
+  border-radius: var(--r-full);
+  margin-left: 8px;
 }
-.section { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
-.section-header {
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MENU CONTENT - HORIZONTAL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#menuContent {
+  display: flex !important;
+  align-items: center;
+  gap: 4px;
+}
+
+#menuContent .section {
+  display: contents;
+}
+
+#menuContent .section-body {
+  display: contents;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   NAV BUTTONS - HORIZONTAL PILLS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.btn {
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  border-radius: var(--r-full);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.btn:hover {
+  background: var(--glass-hover);
+  color: var(--text);
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   POST LOGIN - INLINE WITH NAV
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#postLogin {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  margin: 0 !important;
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
+}
+
+#postLogin[style*="block"] {
+  display: flex !important;
+}
+
+#postLogin .section {
+  display: contents;
+}
+
+#postLogin .section-body {
+  display: contents;
+}
+
+/* Logout button */
+#logoutBtn {
+  background: var(--danger-bg) !important;
+  color: var(--danger) !important;
+}
+
+#logoutBtn:hover {
+  background: rgba(248, 113, 113, 0.25) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ALL PANELS - CENTERED
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.side-panel,
+.offers-panel,
+.transactions-panel,
+.feature-panel,
+#authPanel,
+#offersPanel,
+#viewpointsPanel,
+#transactionsPanel,
+#featurePanel,
+#appPanel {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+
+  width: 420px;
+  max-width: 90vw;
+  max-height: 80vh;
+
+  background: var(--glass);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-lg);
+
+  z-index: 1001;
+  overflow: hidden;
+
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, -50%) scale(0.95);
+  transition: all var(--duration) var(--ease);
+}
+
+.side-panel[style*="block"],
+.side-panel[style*="flex"],
+.offers-panel[style*="block"],
+.transactions-panel[style*="block"],
+.feature-panel[style*="block"],
+#authPanel[style*="block"],
+#offersPanel[style*="block"],
+#viewpointsPanel[style*="block"],
+#transactionsPanel[style*="block"],
+#featurePanel[style*="block"],
+#appPanel[style*="block"] {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, -50%) scale(1);
+  display: flex !important;
+  flex-direction: column;
+}
+
+.side-panel.dock-left {
+  left: 50% !important;
+  right: auto !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PANEL HEADER
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.panel-header,
+.feature-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #0c172b;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  cursor: pointer;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
-.section-title { font-weight: 600; }
-.section-body { margin-top: 10px; display: none; }
-.input {
-  width: 100%;
-  box-sizing: border-box;
-  background: #0c172b;
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-}
-.btn {
-  width: 100%;
-  margin-top: 8px;
-  border: none;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: var(--accent);
-  color: #fff;
+
+.panel-title,
+.feature-title,
+#appPanelTitle {
+  font-size: 15px;
   font-weight: 600;
-  cursor: pointer;
-}
-.btn:hover { background: var(--accent-hover); }
-
-/* WSPÓLNE PANELE (prawe) */
-.side-panel {
-  position: absolute;
-  top: 16px;
-  left: calc(16px + var(--menu-width) + var(--gap));
-  z-index: 60;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  width: 420px;
-  padding: 14px;
-  display: none;
-  font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-}
-.panel-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.panel-title  { font-weight: 700; font-size: 16px; }
-.panel-close  {
-  background: transparent; border: 1px solid var(--border); color: var(--muted);
-  padding: 6px 10px; border-radius: 10px; cursor: pointer;
+  color: var(--text);
 }
 
-/* OFERTY */
-.offers-panel .section {
-  background: #0c172b; border: 1px solid var(--border); border-radius: 12px;
-  padding: 10px; margin-top: 12px; box-shadow: inset 0 0 8px rgba(0,0,0,.3);
-}
-.offers-panel .section-title { font-weight: 700; font-size: 15px; cursor: pointer; }
-.offers-panel .section-header-row { display: flex; justify-content: space-between; align-items: center; }
-.close-btn {
-  background: transparent; border: 1px solid var(--border); color: var(--muted);
-  padding: 4px 8px; border-radius: 6px; cursor: pointer; margin-left: 8px;
-}
-.close-btn:hover { border-color: var(--accent); color: var(--text); }
-
-.range-inline {
-  display: grid; grid-template-columns: auto 1fr auto 1fr;
-  gap: 8px; align-items: center; margin: 8px 0 6px;
-}
-.offers-panel #saleBody    { background: rgba(79,140,255,.15);  border-radius: 10px; padding: 6px; }
-.offers-panel #auctionBody { background: rgba(25,195,125,.15); border-radius: 10px; padding: 6px; }
-.toggle-btn {
-  width: 100%; background: #0c172b; border: 1px solid var(--border);
-  color: var(--text); border-radius: 10px; padding: 10px 12px; cursor: pointer; text-align: left; margin-top: 8px;
-}
-.toggle-btn[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-
-.list { margin-top: 10px; display: grid; gap: 8px; }
-.list-item {
-  display: flex; align-items: center; justify-content: space-between;
-  border: 1px solid var(--border); border-radius: 10px; padding: 10px; background: #0c172b;
-}
-
-/* DROBNICA */
-#toast {
-  display: none; position: fixed; left: 50%; transform: translateX(-50%); bottom: 20px;
-  background: var(--success); color: #042b1b; font-weight: 700; padding: 10px 14px;
-  border-radius: 999px; box-shadow: var(--shadow); z-index: 99;
-}
-.cesium-viewer-animationContainer,
-.cesium-viewer-timelineContainer,
-.cesium-viewer-bottom { display: none !important; }
-
-/* Feature Panel (prawy) */
-.feature-panel{
-  position:absolute; top:16px; right:16px; z-index:70; width:380px;
-  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:14px; display:none;
-  font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-}
-.feature-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.feature-title{font-weight:700;font-size:16px}
-.feature-close{background:transparent;border:1px solid var(--border);color:var(--muted);
-  padding:6px 10px;border-radius:10px;cursor:pointer}
-.props{
-  margin-top:10px;background:#0c172b;border:1px solid var(--border);border-radius:10px;
-  padding:10px;max-height:42vh;overflow:auto
-}
-.prop{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px dashed #1f2a44}
-.prop .k{color:var(--muted);font-size:12px}
-.feature-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
-.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);
-  padding:10px 12px;border-radius:10px;cursor:pointer}
-.btn-ghost:hover{border-color:var(--accent)}
-/* Dokowanie panelu w miejsce menu (lewy slot) */
-.side-panel.dock-left { left: 16px; width: var(--menu-width); }
-
-
-/* zawsze trzymaj Close po prawej w headerach paneli */
-.side-panel .panel-header {
+.panel-close,
+.close-btn,
+.feature-close {
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
-  justify-content: flex-start;  /* ⬅ nadpisuje wcześniejsze space-between */
-}
-.side-panel .panel-header .panel-title { margin-right: auto; }
-.side-panel .panel-header .panel-close { margin-left: auto; }
-
-/* ——— TYLKO TEN BLOK ———
-   Ustaw nagłówki paneli jako grid: [tytuł | Close].
-   Gwarantuje, że Close ZAWSZE będzie po prawej i wyśrodkowany pionowo.
-*/
-
-/* appPanel / authPanel / viewpoints (mają .panel-header) */
-.side-panel .panel-header{
-  display: grid !important;
-  grid-template-columns: 1fr auto !important;
-  align-items: center !important;
-}
-.side-panel .panel-header .panel-title{ margin:0 !important; }
-.side-panel .panel-header .panel-close{
-  justify-self: end !important;
-  position: static !important;     /* skasuj wcześniejsze position:absolute */
-  top: auto !important; right: auto !important; transform: none !important;
-  margin: 0 !important; width: auto !important;
+  justify-content: center;
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-/* Oferty (mają .section-header-row + .close-btn) */
-.offers-panel .section-header-row{
-  display: grid !important;
-  grid-template-columns: 1fr auto !important;
-  align-items: center !important;
-}
-.offers-panel .section-header-row .section-title{ margin:0 !important; }
-.offers-panel .section-header-row .close-btn{
-  justify-self: end !important;
-  position: static !important; top:auto !important; right:auto !important; transform:none !important;
-  margin: 0 !important; width: auto !important;
+.panel-close:hover,
+.close-btn:hover,
+.feature-close:hover {
+  background: var(--danger-bg);
+  border-color: rgba(248, 113, 113, 0.3);
+  color: var(--danger);
 }
 
-/* Feature panel (prawy, ma .feature-header + .feature-close) */
-.feature-panel .feature-header{
-  display: grid !important;
-  grid-template-columns: 1fr auto !important;
-  align-items: center !important;
-}
-.feature-panel .feature-header .feature-title{ margin:0 !important; }
-.feature-panel .feature-header .feature-close{
-  justify-self: end !important;
-  position: static !important; top:auto !important; right:auto !important; transform:none !important;
-  margin: 0 !important; width: auto !important;
+.panel-body,
+#appPanelBody {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
 }
 
-
-/* WIELKI ADMIN – nagłówek: tytuł po lewej, X po prawej */
-#appPanel[data-panel="admin"] .panel-header {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
+.panel-actions {
+  display: flex;
+  gap: 8px;
 }
 
-#appPanel[data-panel="admin"] .panel-title {
-  margin-right: auto !important;
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.section {
+  margin-bottom: 16px;
 }
 
-#appPanel[data-panel="admin"] .panel-close {
-  margin-left: auto !important;
+.section:last-child {
+  margin-bottom: 0;
 }
 
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.section-body {
+  padding: 14px;
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FEATURE PANEL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.props {
+  padding: 16px 20px;
+  max-height: 250px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.feature-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIEWPOINTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#vpList {
+  padding: 0 0 14px 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  margin-bottom: 8px;
+  gap: 10px;
+  transition: all 0.15s ease;
+}
+
+.list-item:hover {
+  background: var(--glass-hover);
+  border-color: var(--border-hover);
+}
+
+.list-item .row {
+  display: flex;
+  gap: 6px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AUTH PANEL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.card {
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+
+.card-title {
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-body {
+  padding: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INPUTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.input:hover {
+  border-color: var(--border-hover);
+}
+
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+label .input {
+  margin-top: 6px;
+}
+
+.range-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.range-inline label {
+  margin: 0;
+  font-size: 11px;
+}
+
+.range-inline .input {
+  width: 90px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.text-link {
+  color: var(--accent);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BUTTONS SECONDARY
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.toggle-btn {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--accent-bg);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  border-radius: var(--r-sm);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toggle-btn:hover {
+  background: rgba(167, 139, 250, 0.2);
+}
+
+.btn-ghost {
+  padding: 8px 14px;
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-ghost:hover {
+  background: var(--glass-hover);
+  border-color: var(--border-hover);
+  color: var(--text);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.btn-outline:hover {
+  background: var(--glass-light);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 12px 24px;
+  background: var(--glass);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 9999;
+  display: none;
+  opacity: 0;
+}
+
+#toast[style*="block"] {
+  animation: toastUp 0.3s var(--ease) forwards;
+}
+
+@keyframes toastUp {
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+  .menu-panel {
+    max-width: calc(100% - 24px);
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .menu-panel {
+    top: 12px;
+    padding: 6px 10px;
+  }
+
+  .btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .side-panel,
+  .feature-panel,
+  #authPanel,
+  #offersPanel,
+  #viewpointsPanel,
+  #transactionsPanel,
+  #featurePanel,
+  #appPanel {
+    width: calc(100% - 24px);
+    max-height: 70vh;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CESIUM CLEANUP
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.cesium-viewer-bottom,
+.cesium-widget-credits,
+.cesium-viewer-toolbar {
+  display: none !important;
+}

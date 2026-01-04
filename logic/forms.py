@@ -1,29 +1,38 @@
-
 from django import forms
-import re
 from django.contrib.auth import get_user_model
-
-
-
-class RegistrationForm(forms.Form):
-    username = forms.CharField(max_length=30, required=True)
-    email = forms.EmailField(required=True)
-    password = forms.CharField(widget=forms.PasswordInput)
-
-    def clean_password(self):
-        password = self.cleaned_data.get("password")
-        if len(password) < 6 or not re.search(r'[A-Z]', password):
-            raise forms.ValidationError("Password must be at least 6 characters and contain an uppercase letter.")
-        return password
-
-class LoginForm(forms.Form):
-    email = forms.EmailField(required=True)
-    password = forms.CharField(widget=forms.PasswordInput)
+from django.contrib.auth.password_validation import validate_password
 
 User = get_user_model()
 
-class UpdateForm(forms.ModelForm):
-    class Meta:
-        model = User
-        fields = ['username', 'email', 'password']
 
+class LoginForm(forms.Form):
+    email = forms.EmailField()
+    password = forms.CharField()
+
+
+class RegisterForm(forms.Form):
+    username = forms.CharField(max_length=150)
+    email = forms.EmailField()
+    password = forms.CharField()
+    password2 = forms.CharField()
+    accept_terms = forms.BooleanField()
+
+    def clean_email(self):
+        email = self.cleaned_data['email'].lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError('EMAIL_EXISTS')
+        return email
+
+    def clean_username(self):
+        username = self.cleaned_data['username']
+        if User.objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError('USERNAME_EXISTS')
+        return username
+
+    def clean(self):
+        cd = super().clean()
+        if cd.get('password') != cd.get('password2'):
+            raise forms.ValidationError('PASSWORD_MISMATCH')
+        if cd.get('password'):
+            validate_password(cd['password'])
+        return cd

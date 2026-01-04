@@ -1,9 +1,9 @@
 from django.contrib import admin
 from django.urls import path
 from logic import views
-from logic import views_messages 
-from logic import views_trade
-from logic import views_my_homes
+from logic import views_messages
+from logic import views_auth
+from logic import views_listings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -36,8 +36,7 @@ urlpatterns = [
     path('api/house/<str:id_fme>/', views.house_detail, name='house_detail'),
     path('api/house/<str:id_fme>/takeover/', views_messages.house_takeover, name='house_takeover'),
     path('api/listings/nearby/', views.listings_nearby, name='listings_nearby'),
-    path('api/houses/sold_nearby/', views.houses_sold_nearby, name='houses_sold_nearby'),    
-    path('api/houses/owned/', views_my_homes.houses_owned, name='houses_owned'),
+    path('api/houses/sold_nearby/', views.houses_sold_nearby, name='houses_sold_nearby'),
     path('api/houses/free_nearby/', views.houses_free_nearby, name='houses_free_nearby'),
 
 
@@ -70,62 +69,18 @@ urlpatterns = [
         name="split_proposal_cancel",
     ),
 
-    # WIELKI ADMIN – split limit requests
-    path(
-        "api/admin/split_limit_requests/",
-        views.admin_split_limit_requests,
-        name="admin_split_limit_requests",
-    ),
-    path(
-        "api/admin/split_limit_requests/<uuid:request_id>/decide/",
-        views.admin_split_limit_decide,
-        name="admin_split_limit_decide",
-    ),
-
-
-
-    path('api/auth/login/', views.api_login, name='api_login'),
-    path('api/auth/logout/', views.api_logout, name='api_logout'),
-    path('api/auth/whoami/', views.api_whoami, name='api_whoami'),
-    path('api/auth/register/', views.api_register, name='api_register'),
-    path('api/auth/csrf/',       views.api_csrf,       name='api_csrf'),    
-
-    path('api/trade/finalize/', views_trade.trade_finalize, name='trade_finalize'),
-    path('api/trades/mine/', views_trade.trades_mine, name='trades_mine'),
-
-
-    path('api/messages/', views_messages.messages_list),
-    path('api/messages/archived/', views_messages.messages_archived),
-    path('api/messages/<uuid:conv_id>/', views_messages.messages_thread),
-    path('api/messages/<uuid:conv_id>/stop/', views_messages.messages_stop),
-    path('api/messages/', views_messages.messages_list, name='messages_list'),
-    path('api/messages/prepare/', views_messages.messages_prepare, name='messages_prepare'),
-    path('api/messages/start/', views_messages.messages_start, name='messages_start'),
-
-    path('api/messages/<uuid:conv_id>/', views_messages.messages_thread, name='messages_thread'),
-    path('api/messages/<uuid:conv_id>/send/', views_messages.messages_send, name='messages_send'),
-    path('api/messages/<uuid:conv_id>/offer/', views_messages.messages_offer, name='messages_offer'),
-    path('api/messages/<uuid:conv_id>/accept/', views_messages.messages_accept, name='messages_accept'),
-    path('api/messages/<uuid:conv_id>/finalize/', views_messages.messages_finalize, name='messages_finalize'),
-    path('api/messages/<uuid:conv_id>/stop/', views_messages.messages_stop, name='messages_stop'),
-
-    path('api/chat/thread/<int:user_id>/', views.chat_thread, name='chat_thread'),
-    path('api/chat/send/', views.chat_send, name='chat_send'),
-    path('api/chat/inbox/',  views.chat_inbox,  name='chat_inbox'),
-
-
-    # Friends / Blocked (czat 1:1)
-    path('api/chat/friends/',        views.chat_friends,        name='chat_friends'),
-    path('api/chat/friends/add/',    views.chat_friends_add,    name='chat_friends_add'),
-    path('api/chat/friends/remove/', views.chat_friends_remove, name='chat_friends_remove'),
-    path('api/chat/settings/',     views.chat_settings,    name='chat_settings'),
-    path('api/chat/save_toggle/',  views.chat_save_toggle, name='chat_save_toggle'),
-
-    path('api/chat/blocked/',        views.chat_blocked,        name='chat_blocked'),
-    path('api/chat/blocked/add/',    views.chat_blocked_add,    name='chat_blocked_add'),
-    path('api/chat/blocked/remove/', views.chat_blocked_remove, name='chat_blocked_remove'),
-    path("api/chat/friend_position/<int:user_id>/", views.chat_friend_position, name="chat_friend_position"),
-
-
-    
+    path('api/auth/login/', views_auth.api_login, name='api_login'),
+    path('api/auth/logout/', views_auth.api_logout, name='api_logout'),
+    path('api/auth/whoami/', views_auth.api_whoami, name='api_whoami'),
+    path('api/auth/register/', views_auth.api_register, name='api_register'),
+    path('api/auth/csrf/',       views_auth.api_csrf,       name='api_csrf'),
+    path('api/profile/', views_auth.api_profile, name='api_profile'),
+    path('api/profile/update/', views_auth.api_profile_update, name='api_profile_update'),
+    path('api/profile/password/', views_auth.api_password_change, name='api_password_change'),
+    #Listings
+    path('api/listings/', views_listings.api_listings, name='api_listings'),
+    path('api/listings/cheapest/', views_listings.api_listings_cheapest, name='api_listings_cheapest'),
+    path('api/listings/mine/', views_listings.api_my_listings, name='api_my_listings'),
+    path('api/listings/house/<uuid:house_id>/', views_listings.api_listings_by_house, name='api_listings_by_house'),
+    path('api/listings/<uuid:listing_id>/', views_listings.api_listing_detail, name='api_listing_detail'),
 ]
