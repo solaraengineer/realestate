@@ -2024,3 +2024,228 @@ def split_limit_request(request, house_id):
             }
         )
 
+
+@login_required
+@require_GET
+def api_my_houses(request):
+    """
+    Returns all houses owned by the current user (from HouseOwnership).
+    """
+    ownerships = (
+        HouseOwnership.objects
+        .filter(user=request.user)
+        .select_related('house')
+    )
+
+    results = []
+    for ho in ownerships:
+        h = ho.house
+        if not h:
+            continue
+
+        total_shares = h.total_shares or 1
+        percent = (ho.shares / total_shares) * 100.0 if total_shares else 0.0
+
+        # Check for active listing
+        active_listing = Listing.objects.filter(
+            house=h.id, seller=request.user.id, status='active'
+        ).first()
+
+        results.append({
+            "house_id": str(h.id),
+            "id_fme": h.id_fme,
+            "name": h.name or h.id_fme,
+            "lat": h.lat,
+            "lon": h.lon,
+            "height": float(h.fme_height) if h.fme_height else None,
+            "shares": ho.shares,
+            "total_shares": total_shares,
+            "percent": round(percent, 2),
+            "status": h.status,
+            "has_listing": active_listing is not None,
+            "listing_price": float(active_listing.price) if active_listing else None,
+            "listing_id": str(active_listing.id) if active_listing else None,
+        })
+
+    return JsonResponse({"ok": True, "houses": results})
+
+
+@login_required
+@require_GET
+def api_my_transactions(request):
+    """
+    Returns all trades where user is buyer or seller.
+    """
+    trades = Trade.objects.filter(
+        Q(buyer=request.user.id) | Q(seller=request.user.id)
+    ).order_by('-created_at')
+
+    # Get listing IDs to fetch house info
+    listing_ids = [t.listing for t in trades if t.listing]
+    listings = {l.id: l for l in Listing.objects.filter(id__in=listing_ids)}
+
+    # Get house info
+    house_ids = [l.house for l in listings.values()]
+    houses = {h.id: h for h in House.objects.filter(id__in=house_ids)}
+
+    results = []
+    for t in trades:
+        listing = listings.get(t.listing)
+        house = houses.get(listing.house) if listing else None
+
+        role = 'buyer' if t.buyer == request.user.id else 'seller'
+        counterparty_id = t.seller if role == 'buyer' else t.buyer
+        counterparty = User.objects.filter(id=counterparty_id).first()
+
+        results.append({
+            "id": str(t.id),
+            "role": role,
+            "counterparty": counterparty.username if counterparty else None,
+            "amount": float(t.amount) if t.amount else None,
+            "currency": t.currency,
+            "status": t.status,
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+            "house_id": str(house.id) if house else None,
+            "house_id_fme": house.id_fme if house else None,
+            "house_name": house.name if house else None,
+            "house_lat": house.lat if house else None,
+            "house_lon": house.lon if house else None,
+        })
+
+    return JsonResponse({"ok": True, "transactions": results})
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# VIEWPOINTS (Redis-backed)
+# ═══════════════════════════════════════════════════════════════════════════
+
+from django_redis import get_redis_connection
+
+VIEWPOINTS_KEY_PREFIX = "viewpoints"
+
+
+def _viewpoints_key(user_id):
+    return f"{VIEWPOINTS_KEY_PREFIX}:{user_id}"
+
+
+@login_required
+@require_GET
+def api_viewpoints_list(request):
+    """
+    Returns all viewpoints for the current user from Redis.
+    """
+    r = get_redis_connection("default")
+    key = _viewpoints_key(request.user.id)
+
+    raw_data = r.get(key)
+    if not raw_data:
+        return JsonResponse({"ok": True, "viewpoints": []})
+
+    try:
+        viewpoints = json.loads(raw_data.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        viewpoints = []
+
+    return JsonResponse({"ok": True, "viewpoints": viewpoints})
+
+
+@login_required
+@require_POST
+def api_viewpoints_save(request):
+    """
+    Save a new viewpoint. Expects JSON with: name, lat, lon, height, heading, pitch, roll
+    """
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "INVALID_JSON"}, status=400)
+
+    name = (data.get("name") or "").strip()
+    if not name:
+        name = f"Viewpoint {int(timezone.now().timestamp())}"
+
+    try:
+        lat = float(data.get("lat"))
+        lon = float(data.get("lon"))
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "BAD_COORDS"}, status=400)
+
+    # Optional camera orientation
+    height = data.get("height")
+    heading = data.get("heading")
+    pitch = data.get("pitch")
+    roll = data.get("roll")
+
+    # Cesium position (Cartesian3)
+    pos_x = data.get("pos_x")
+    pos_y = data.get("pos_y")
+    pos_z = data.get("pos_z")
+
+    viewpoint = {
+        "id": str(uuid.uuid4()),
+        "name": name,
+        "lat": lat,
+        "lon": lon,
+        "height": float(height) if height is not None else None,
+        "heading": float(heading) if heading is not None else 0,
+        "pitch": float(pitch) if pitch is not None else -0.5,
+        "roll": float(roll) if roll is not None else 0,
+        "pos_x": float(pos_x) if pos_x is not None else None,
+        "pos_y": float(pos_y) if pos_y is not None else None,
+        "pos_z": float(pos_z) if pos_z is not None else None,
+        "created_at": timezone.now().isoformat(),
+    }
+
+    r = get_redis_connection("default")
+    key = _viewpoints_key(request.user.id)
+
+    # Get existing viewpoints
+    raw_data = r.get(key)
+    if raw_data:
+        try:
+            viewpoints = json.loads(raw_data.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            viewpoints = []
+    else:
+        viewpoints = []
+
+    # Add new viewpoint at the beginning
+    viewpoints.insert(0, viewpoint)
+
+    # Limit to 50 viewpoints max
+    viewpoints = viewpoints[:50]
+
+    # Save back to Redis (no expiry - permanent storage)
+    r.set(key, json.dumps(viewpoints))
+
+    return JsonResponse({"ok": True, "viewpoint": viewpoint})
+
+
+@login_required
+@require_POST
+def api_viewpoints_delete(request, viewpoint_id):
+    """
+    Delete a viewpoint by ID.
+    """
+    r = get_redis_connection("default")
+    key = _viewpoints_key(request.user.id)
+
+    raw_data = r.get(key)
+    if not raw_data:
+        return JsonResponse({"ok": False, "error": "NOT_FOUND"}, status=404)
+
+    try:
+        viewpoints = json.loads(raw_data.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "error": "NOT_FOUND"}, status=404)
+
+    # Filter out the viewpoint to delete
+    new_viewpoints = [vp for vp in viewpoints if vp.get("id") != viewpoint_id]
+
+    if len(new_viewpoints) == len(viewpoints):
+        return JsonResponse({"ok": False, "error": "NOT_FOUND"}, status=404)
+
+    r.set(key, json.dumps(new_viewpoints))
+
+    return JsonResponse({"ok": True})
+

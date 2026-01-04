@@ -83,4 +83,25 @@ urlpatterns = [
     path('api/listings/mine/', views_listings.api_my_listings, name='api_my_listings'),
     path('api/listings/house/<uuid:house_id>/', views_listings.api_listings_by_house, name='api_listings_by_house'),
     path('api/listings/<uuid:listing_id>/', views_listings.api_listing_detail, name='api_listing_detail'),
+
+    # My Houses and Transactions
+    path('api/my/houses/', views.api_my_houses, name='api_my_houses'),
+    path('api/my/transactions/', views.api_my_transactions, name='api_my_transactions'),
+
+    # Viewpoints (Redis-backed)
+    path('api/viewpoints/', views.api_viewpoints_list, name='api_viewpoints_list'),
+    path('api/viewpoints/save/', views.api_viewpoints_save, name='api_viewpoints_save'),
+    path('api/viewpoints/<str:viewpoint_id>/delete/', views.api_viewpoints_delete, name='api_viewpoints_delete'),
+
+    # Messages API
+    path('api/messages/', views_messages.messages_list, name='messages_list'),
+    path('api/messages/archived/', views_messages.messages_archived, name='messages_archived'),
+    path('api/messages/prepare/', views_messages.messages_prepare, name='messages_prepare'),
+    path('api/messages/start/', views_messages.messages_start, name='messages_start'),
+    path('api/messages/<uuid:conv_id>/', views_messages.messages_thread, name='messages_thread'),
+    path('api/messages/<uuid:conv_id>/send/', views_messages.messages_send, name='messages_send'),
+    path('api/messages/<uuid:conv_id>/offer/', views_messages.messages_offer, name='messages_offer'),
+    path('api/messages/<uuid:conv_id>/accept/', views_messages.messages_accept, name='messages_accept'),
+    path('api/messages/<uuid:conv_id>/finalize/', views_messages.messages_finalize, name='messages_finalize'),
+    path('api/messages/<uuid:conv_id>/stop/', views_messages.messages_stop, name='messages_stop'),
 ]

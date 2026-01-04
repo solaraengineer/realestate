@@ -1,90 +1,231 @@
-function renderViewpoints() {
-  const vpList = document.getElementById('vpList');
-  const vpName = document.getElementById('vpName');
-  const vpSave = document.getElementById('vpSave');
-  if (!vpList || !vpSave) return;
+/**
+ * viewpoints.js - Viewpoints panel with Redis backend and smooth fly-to animation
+ */
 
-  // Helpers to get/set viewpoints from localStorage
-  const getVP = () => {
-    try {
-      return JSON.parse(localStorage.getItem('my_viewpoints') || '[]');
-    } catch {
-      return [];
-    }
-  };
-  const setVP = (arr) => {
-    localStorage.setItem('my_viewpoints', JSON.stringify(arr));
+(function() {
+  'use strict';
+
+  const API = {
+    list: '/api/viewpoints/',
+    save: '/api/viewpoints/save/',
+    delete: (id) => `/api/viewpoints/${id}/delete/`,
   };
 
-  // Odświeżenie listy zapisanych ujęć
-  const refresh = () => {
-    const vps = getVP();
-    vpList.innerHTML = vps.length ? '' : '<div class="list-item">Brak zapisanych ujęć.</div>';
-    vps.forEach((vp, i) => {
-      const it = document.createElement('div');
-      it.className = 'list-item';
-      it.innerHTML = `
-        <div>
-          <div style="font-weight:700">${vp.name || ('Ujęcie ' + (i + 1))}</div>
-          <div style="font-size:12px;color:${getComputedStyle(document.documentElement).getPropertyValue('--muted')}">
-            h:${(vp.heading || 0).toFixed?.(2) || 0}
-            p:${(vp.pitch || 0).toFixed?.(2) || 0}
-            r:${(vp.roll || 0).toFixed?.(2) || 0}
-          </div>
-        </div>
-        <div class="row">
-          <button class="btn" data-act="fly" data-i="${i}" style="width:auto">Lataj</button>
-          <button class="btn" data-act="del" data-i="${i}" style="background:#ef4444;width:auto">Usuń</button>
-        </div>`;
-      vpList.appendChild(it);
+  function getCsrf() {
+    const match = document.cookie.match(/csrftoken=([^;]+)/);
+    return match ? match[1] : '';
+  }
+
+  async function jget(url) {
+    const r = await fetch(url, { credentials: 'same-origin' });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data?.error || 'HTTP error');
+    return data;
+  }
+
+  async function jpost(url, body) {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrf(),
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify(body),
     });
-  };
+    const data = await r.json();
+    if (!r.ok) throw new Error(data?.error || 'HTTP error');
+    return data;
+  }
 
-  // Kliknięcia na liście viewpointów
-  vpList.onclick = (e) => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    const i = Number(btn.dataset.i);
-    const vps = getVP();
-    const vp = vps[i];
-    if (!vp) return;
-    if (btn.dataset.act === 'fly' && window.__viewer) {
-      // Przelot kamery do wybranego ujęcia
-      window.__viewer.camera.flyTo({
-        destination: new Cesium.Cartesian3(vp.pos.x, vp.pos.y, vp.pos.z),
-        orientation: {
-          heading: vp.heading,
-          pitch: vp.pitch,
-          roll: vp.roll
-        }
-      });
-    } else if (btn.dataset.act === 'del') {
-      // Usunięcie wybranego ujęcia
-      vps.splice(i, 1);
-      setVP(vps);
-      refresh();
-    }
-  };
+  /**
+   * Get current camera position and convert to lat/lon
+   */
+  function getCurrentViewpoint() {
+    const viewer = window.__viewer;
+    if (!viewer) return null;
 
-  // Zapisanie aktualnego widoku jako nowego viewpointa
-  vpSave.onclick = () => {
-    if (!window.__viewer) return;
-    const c = window.__viewer.camera;
-    const vp = {
-      name: vpName.value.trim(),
-      pos: { x: c.position.x, y: c.position.y, z: c.position.z },
-      heading: c.heading,
-      pitch: c.pitch,
-      roll: c.roll,
-      ts: Date.now()
+    const camera = viewer.camera;
+    const position = camera.position;
+    const cartographic = Cesium.Cartographic.fromCartesian(position);
+
+    return {
+      lat: Cesium.Math.toDegrees(cartographic.latitude),
+      lon: Cesium.Math.toDegrees(cartographic.longitude),
+      height: cartographic.height,
+      heading: camera.heading,
+      pitch: camera.pitch,
+      roll: camera.roll,
+      pos_x: position.x,
+      pos_y: position.y,
+      pos_z: position.z,
     };
-    const vps = getVP();
-    vps.unshift(vp);
-    setVP(vps);
-    vpName.value = '';
-    refresh();
-  };
+  }
 
-  // Inicjalne odświeżenie listy przy pierwszym otwarciu panelu
-  refresh();
-}
+  /**
+   * Fly to a viewpoint with smooth animation
+   */
+  function flyToViewpoint(vp) {
+    const viewer = window.__viewer;
+    if (!viewer) return;
+
+    // If we have Cartesian3 position, use it directly for exact camera position
+    if (vp.pos_x != null && vp.pos_y != null && vp.pos_z != null) {
+      viewer.camera.flyTo({
+        destination: new Cesium.Cartesian3(vp.pos_x, vp.pos_y, vp.pos_z),
+        orientation: {
+          heading: vp.heading || 0,
+          pitch: vp.pitch || -0.5,
+          roll: vp.roll || 0,
+        },
+        duration: 2.5,
+        easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT,
+      });
+    } else {
+      // Fallback to lat/lon/height
+      const height = vp.height || 500;
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(vp.lon, vp.lat, height),
+        orientation: {
+          heading: vp.heading || 0,
+          pitch: vp.pitch || Cesium.Math.toRadians(-45),
+          roll: vp.roll || 0,
+        },
+        duration: 2.5,
+        easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT,
+      });
+    }
+  }
+
+  /**
+   * Render the viewpoints panel
+   */
+  async function renderViewpoints() {
+    const vpList = document.getElementById('vpList');
+    const vpName = document.getElementById('vpName');
+    const vpSave = document.getElementById('vpSave');
+
+    if (!vpList || !vpSave) return;
+
+    // Show loading
+    vpList.innerHTML = '<div class="list-item">Ładowanie...</div>';
+
+    try {
+      const data = await jget(API.list);
+      const viewpoints = data.viewpoints || [];
+
+      if (viewpoints.length === 0) {
+        vpList.innerHTML = '<div class="list-item" style="color:var(--text-muted);">Brak zapisanych ujęć. Dodaj swój pierwszy viewpoint!</div>';
+      } else {
+        vpList.innerHTML = '';
+        viewpoints.forEach((vp, i) => {
+          const item = document.createElement('div');
+          item.className = 'list-item';
+          item.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px;margin-bottom:6px;background:var(--glass-light);border:1px solid var(--border);border-radius:8px;';
+
+          const coordsStr = `${vp.lat?.toFixed(4) || '?'}, ${vp.lon?.toFixed(4) || '?'}`;
+
+          item.innerHTML = `
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${vp.name || 'Ujęcie ' + (i + 1)}</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${coordsStr}</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+              <button class="btn fly-btn" data-idx="${i}" style="padding:6px 12px;font-size:11px;background:var(--accent);">Leć</button>
+              <button class="btn del-btn" data-idx="${i}" style="padding:6px 10px;font-size:11px;background:#ef4444;">X</button>
+            </div>
+          `;
+
+          vpList.appendChild(item);
+        });
+
+        // Attach click handlers
+        vpList.querySelectorAll('.fly-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const idx = parseInt(btn.dataset.idx);
+            const vp = viewpoints[idx];
+            if (vp) {
+              flyToViewpoint(vp);
+              if (typeof window.toast === 'function') {
+                window.toast(`Lecę do: ${vp.name}`);
+              }
+            }
+          });
+        });
+
+        vpList.querySelectorAll('.del-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const idx = parseInt(btn.dataset.idx);
+            const vp = viewpoints[idx];
+            if (!vp || !vp.id) return;
+
+            try {
+              await jpost(API.delete(vp.id), {});
+              renderViewpoints(); // Refresh
+              if (typeof window.toast === 'function') {
+                window.toast('Usunięto ujęcie');
+              }
+            } catch (err) {
+              console.error('[Viewpoints] Delete error:', err);
+              if (typeof window.toast === 'function') {
+                window.toast('Błąd usuwania');
+              }
+            }
+          });
+        });
+      }
+
+    } catch (err) {
+      console.error('[Viewpoints] Load error:', err);
+      vpList.innerHTML = '<div class="list-item" style="color:#f87171;">Błąd ładowania</div>';
+    }
+
+    // Save button handler (re-attach on each render)
+    vpSave.onclick = async () => {
+      const currentVp = getCurrentViewpoint();
+      if (!currentVp) {
+        if (typeof window.toast === 'function') {
+          window.toast('Nie można pobrać pozycji kamery');
+        }
+        return;
+      }
+
+      const name = (vpName?.value || '').trim();
+
+      try {
+        await jpost(API.save, {
+          name: name || undefined,
+          lat: currentVp.lat,
+          lon: currentVp.lon,
+          height: currentVp.height,
+          heading: currentVp.heading,
+          pitch: currentVp.pitch,
+          roll: currentVp.roll,
+          pos_x: currentVp.pos_x,
+          pos_y: currentVp.pos_y,
+          pos_z: currentVp.pos_z,
+        });
+
+        if (vpName) vpName.value = '';
+        renderViewpoints(); // Refresh
+
+        if (typeof window.toast === 'function') {
+          window.toast('Zapisano ujęcie');
+        }
+      } catch (err) {
+        console.error('[Viewpoints] Save error:', err);
+        if (typeof window.toast === 'function') {
+          window.toast('Błąd zapisywania');
+        }
+      }
+    };
+  }
+
+  // Export
+  window.renderViewpoints = renderViewpoints;
+
+  console.log('[Viewpoints] Module loaded');
+
+})();

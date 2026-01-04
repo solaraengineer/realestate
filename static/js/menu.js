@@ -396,22 +396,19 @@
           }
           break;
 
-        case 'search':
-          toast('Szukaj - coming soon');
-          break;
-
-        case 'goto':
-          toast('Idź do - coming soon');
-          break;
 
         case 'homes':
           showPanel(appPanel);
           document.getElementById('appPanelTitle').textContent = 'Moje domy';
-          document.getElementById('appPanelBody').innerHTML = '<p style="color:var(--text-muted)">Twoje nieruchomości pojawią się tutaj.</p>';
+          document.getElementById('appPanelBody').innerHTML = '<p style="color:var(--text-muted)">Ładowanie...</p>';
+          loadMyHouses();
           break;
 
         case 'transactions':
-          showPanel(transactionsPanel);
+          showPanel(appPanel);
+          document.getElementById('appPanelTitle').textContent = 'Moje transakcje';
+          document.getElementById('appPanelBody').innerHTML = '<p style="color:var(--text-muted)">Ładowanie...</p>';
+          loadMyTransactions();
           break;
 
         case 'watchlist':
@@ -429,11 +426,6 @@
           }
           break;
 
-        case 'friends':
-          showPanel(appPanel);
-          document.getElementById('appPanelTitle').textContent = 'Friends';
-          document.getElementById('appPanelBody').innerHTML = '<p style="color:var(--text-muted)">Your friends will appear here.</p>';
-          break;
 
         case 'viewpoints':
           showPanel(viewpointsPanel);
@@ -461,11 +453,6 @@
           `;
           break;
 
-        case 'admin':
-          showPanel(appPanel);
-          document.getElementById('appPanelTitle').textContent = 'WIELKI ADMIN';
-          document.getElementById('appPanelBody').innerHTML = '<p style="color:var(--text-muted)">Panel admina.</p>';
-          break;
 
         // logout handled by logoutBtn directly
       }
@@ -574,6 +561,158 @@
 
   // Export
   window.getCookie = Auth?.getCookie;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MY HOUSES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async function loadMyHouses() {
+    const body = document.getElementById('appPanelBody');
+    if (!body) return;
+
+    try {
+      const res = await fetch('/api/my/houses/', { credentials: 'same-origin' });
+      const data = await res.json();
+
+      if (!data.ok) {
+        body.innerHTML = '<p style="color:#f87171;">Błąd ładowania</p>';
+        return;
+      }
+
+      if (!data.houses || data.houses.length === 0) {
+        body.innerHTML = '<p style="color:var(--text-muted)">Nie posiadasz żadnych nieruchomości.</p>';
+        return;
+      }
+
+      let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
+      for (const h of data.houses) {
+        const statusBadge = h.has_listing
+          ? `<span style="background:#22c55e;color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">Na sprzedaż: ${h.listing_price} PLN</span>`
+          : '';
+
+        html += `
+          <div class="house-item" data-lat="${h.lat || ''}" data-lon="${h.lon || ''}" data-id-fme="${h.id_fme || ''}"
+               style="padding:12px;background:var(--glass-light);border:1px solid var(--border);border-radius:8px;cursor:pointer;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div>
+                <div style="font-weight:600;font-size:14px;">${h.name || 'Dom'}</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
+                  ${h.shares}/${h.total_shares} udziałów (${h.percent}%)
+                </div>
+              </div>
+              <div style="text-align:right;">
+                ${statusBadge}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      html += '</div>';
+      body.innerHTML = html;
+
+      // Add click handlers for fly-to
+      body.querySelectorAll('.house-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const lat = parseFloat(el.dataset.lat);
+          const lon = parseFloat(el.dataset.lon);
+          const idFme = el.dataset.idFme;
+
+          if (lat && lon && window.__viewer) {
+            window.__viewer.camera.flyTo({
+              destination: Cesium.Cartesian3.fromDegrees(lon, lat, 500),
+              duration: 1.5
+            });
+          }
+
+          if (idFme && typeof window.showFeaturePanel === 'function') {
+            window.showFeaturePanel(idFme);
+          }
+        });
+      });
+
+    } catch (e) {
+      console.error('[MyHouses]', e);
+      body.innerHTML = '<p style="color:#f87171;">Błąd połączenia</p>';
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MY TRANSACTIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async function loadMyTransactions() {
+    const body = document.getElementById('appPanelBody');
+    if (!body) return;
+
+    try {
+      const res = await fetch('/api/my/transactions/', { credentials: 'same-origin' });
+      const data = await res.json();
+
+      if (!data.ok) {
+        body.innerHTML = '<p style="color:#f87171;">Błąd ładowania</p>';
+        return;
+      }
+
+      if (!data.transactions || data.transactions.length === 0) {
+        body.innerHTML = '<p style="color:var(--text-muted)">Brak transakcji.</p>';
+        return;
+      }
+
+      let html = '<div style="display:flex;flex-direction:column;gap:10px;">';
+      for (const t of data.transactions) {
+        const roleLabel = t.role === 'buyer' ? 'Kupno' : 'Sprzedaż';
+        const roleColor = t.role === 'buyer' ? '#3b82f6' : '#22c55e';
+        const dateStr = t.created_at ? new Date(t.created_at).toLocaleString('pl-PL') : '';
+
+        html += `
+          <div class="transaction-item" data-lat="${t.house_lat || ''}" data-lon="${t.house_lon || ''}" data-id-fme="${t.house_id_fme || ''}"
+               style="padding:12px;background:var(--glass-light);border:1px solid var(--border);border-radius:8px;cursor:pointer;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div>
+                <div style="font-weight:600;font-size:14px;">${t.house_name || 'Dom'}</div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
+                  ${t.counterparty ? (t.role === 'buyer' ? 'od ' : 'do ') + t.counterparty : ''}
+                </div>
+                <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${dateStr}</div>
+              </div>
+              <div style="text-align:right;">
+                <span style="background:${roleColor};color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;">${roleLabel}</span>
+                <div style="font-weight:700;font-size:14px;color:var(--accent);margin-top:4px;">
+                  ${t.amount ? t.amount.toLocaleString('pl-PL') : '—'} ${t.currency || 'PLN'}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      html += '</div>';
+      body.innerHTML = html;
+
+      // Add click handlers for fly-to
+      body.querySelectorAll('.transaction-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const lat = parseFloat(el.dataset.lat);
+          const lon = parseFloat(el.dataset.lon);
+          const idFme = el.dataset.idFme;
+
+          if (lat && lon && window.__viewer) {
+            window.__viewer.camera.flyTo({
+              destination: Cesium.Cartesian3.fromDegrees(lon, lat, 500),
+              duration: 1.5
+            });
+          }
+
+          if (idFme && typeof window.showFeaturePanel === 'function') {
+            window.showFeaturePanel(idFme);
+          }
+        });
+      });
+
+    } catch (e) {
+      console.error('[MyTransactions]', e);
+      body.innerHTML = '<p style="color:#f87171;">Błąd połączenia</p>';
+    }
+  }
 
   console.log('[Menu] Initialized');
 
