@@ -8,6 +8,8 @@ from django.views.decorators.http import require_POST, require_GET
 from django_ratelimit.decorators import ratelimit
 import json
 from django.http import JsonResponse
+import html
+import re
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_POST, require_GET
 from django.contrib.auth.decorators import login_required
@@ -76,11 +78,10 @@ def api_register(request):
     if not form.is_valid():
         if 'PASSWORD_MISMATCH' in str(form.errors):
             return JsonResponse({"ok": False, "error": "PASSWORD_MISMATCH"}, status=400)
-        return JsonResponse({"ok": False, "error": "MISSING_FIELDS"}, status=400)
 
     cd = form.cleaned_data
     username = cd['username']
-    email = cd['email'].lower()
+    email = cd['email']
     password = cd['password']
 
     if User.objects.filter(email__iexact=email).exists():
@@ -156,89 +157,111 @@ def api_profile(request):
     })
 
 
-@require_POST
+
+def super_clean(val, max_len=255):
+    if val is None:
+        return ''
+    val = str(val).strip()
+    val = html.escape(val)
+    val = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', val)
+    return val[:max_len]
+
 @csrf_protect
 @login_required
 def api_profile_update(request):
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({"ok": False, "error": "INVALID_JSON"}, status=400)
+    if request.method == 'GET':
+        user = request.user
+        return JsonResponse({
+            "ok": True,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+            "address": getattr(user, 'address', ''),
+            "city": getattr(user, 'city', ''),
+            "postal_code": getattr(user, 'postal_code', ''),
+            "country": getattr(user, 'country', ''),
+            "company_name": getattr(user, 'company_name', ''),
+            "vat_number": getattr(user, 'vat_number', ''),
+            "two_factor_enabled": getattr(user, 'two_factor_enabled', False),
+        })
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({"ok": False, "error": "INVALID_JSON"}, status=400)
 
-    u = request.user
+        user = request.user
 
-    if 'first_name' in data:
-        u.first_name = data['first_name'].strip()[:150]
+        if 'first_name' in data:
+            if len(data['first_name']) > 15:
+                return JsonResponse({"ok": False, "error": "FIRST_NAME_TOO_LONG"}, status=400)
+            user.first_name = super_clean(data['first_name'], 15)
 
-    if 'last_name' in data:
-        u.last_name = data['last_name'].strip()[:150]
+        if 'last_name' in data:
+            if len(data['last_name']) > 15:
+                return JsonResponse({"ok": False, "error": "LAST_NAME_TOO_LONG"}, status=400)
+            user.last_name = super_clean(data['last_name'], 15)
 
-    if 'company_name' in data:
-        u.company_name = data['company_name'].strip()[:255]
+        if 'company_name' in data:
+            if len(data['company_name']) > 30:
+                return JsonResponse({"ok": False, "error": "COMPANY_NAME_TOO_LONG"}, status=400)
+            user.company_name = super_clean(data['company_name'], 30)
 
-    if 'address' in data:
-        u.address = data['address'].strip()[:255]
+        if 'address' in data:
+            if len(data['address']) > 50:
+                return JsonResponse({"ok": False, "error": "ADDRESS_TOO_LONG"}, status=400)
+            user.address = super_clean(data['address'], 50)
 
-    if 'city' in data:
-        u.city = data['city'].strip()[:100]
+        if 'city' in data:
+            if len(data['city']) > 15:
+                return JsonResponse({"ok": False, "error": "CITY_TOO_LONG"}, status=400)
+            user.city = super_clean(data['city'], 15)
 
-    if 'postal_code' in data:
-        u.postal_code = data['postal_code'].strip()[:20]
+        if 'postal_code' in data:
+            if len(data['postal_code']) > 10:
+                return JsonResponse({"ok": False, "error": "POSTAL_CODE_TOO_LONG"}, status=400)
+            user.postal_code = super_clean(data['postal_code'], 10)
 
-    if 'country' in data:
-        u.country = data['country'].strip()[:100]
+        if 'country' in data:
+            if len(data['country']) > 20:
+                return JsonResponse({"ok": False, "error": "COUNTRY_TOO_LONG"}, status=400)
+            user.country = super_clean(data['country'], 20)
 
-    if 'vat_number' in data:
-        u.vat_number = data['vat_number'].strip()[:50]
+        if 'vat_number' in data:
+            if len(data['vat_number']) > 11:
+                return JsonResponse({"ok": False, "error": "VAT_NUMBER_TOO_LONG"}, status=400)
+            user.vat_number = super_clean(data['vat_number'], 11)
 
-    if 'two_factor_enabled' in data:
-        u.two_factor_enabled = bool(data['two_factor_enabled'])
+        if 'two_factor_enabled' in data:
+            user.two_factor_enabled = bool(data['two_factor_enabled'])
 
-    u.save()
+        if 'current_password' in data:
+            if user.password == data['current_password']:
+                return JsonResponse({"ok": False, "error": "SAME_PASSWORD"}, status=400)
+            password = super_clean(data['current_password'], 128)
+            if not password:
+                return JsonResponse({"ok": False, "error": "INVALID_PASSWORD"}, status=400)
+            hashed_pw = validate_password(password)
+            user.set_password(hashed_pw)
 
-    return JsonResponse({
-        "ok": True,
-        "user": {
-            "id": str(u.id),
-            "username": u.username,
-            "email": u.email,
-            "first_name": u.first_name,
-            "last_name": u.last_name,
-            "company_name": getattr(u, 'company_name', ''),
-            "address": getattr(u, 'address', ''),
-            "city": getattr(u, 'city', ''),
-            "postal_code": getattr(u, 'postal_code', ''),
-            "country": getattr(u, 'country', ''),
-            "vat_number": getattr(u, 'vat_number', ''),
-            "two_factor_enabled": getattr(u, 'two_factor_enabled', False),
-        }
-    })
+        user.save()
+
+        return JsonResponse({
+            "ok": True,
+            "user": {
+                "id": str(user.id),
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "company_name": getattr(user, 'company_name', ''),
+                "address": getattr(user, 'address', ''),
+                "city": getattr(user, 'city', ''),
+                "postal_code": getattr(user, 'postal_code', ''),
+                "country": getattr(user, 'country', ''),
+                "vat_number": getattr(user, 'vat_number', ''),
+                "two_factor_enabled": getattr(user, 'two_factor_enabled', False),
+            }
+        })
 
 
-@require_POST
-@csrf_protect
-@login_required
-def api_password_change(request):
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({"ok": False, "error": "INVALID_JSON"}, status=400)
-
-    password = data.get('password', '')
-    password2 = data.get('password2', '')
-
-    if not password or not password2:
-        return JsonResponse({"ok": False, "error": "MISSING_FIELDS"}, status=400)
-
-    if password != password2:
-        return JsonResponse({"ok": False, "error": "PASSWORD_MISMATCH"}, status=400)
-
-    try:
-        validate_password(password, user=request.user)
-    except ValidationError as e:
-        return JsonResponse({"ok": False, "error": "WEAK_PASSWORD", "messages": list(e.messages)}, status=400)
-
-    request.user.set_password(password)
-    request.user.save()
-
-    return JsonResponse({"ok": True})

@@ -1,4 +1,4 @@
-from logic.redis_positions import update_actor_position, get_nearby_actors
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import (
@@ -12,7 +12,7 @@ import os
 from django.views.decorators.http import require_GET
 from math import radians, sin, cos, atan2, sqrt
 
-from datetime import timedelta  # na górze pliku, jeśli jeszcze nie masz
+from datetime import timedelta
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as PasswordValidationError
@@ -38,18 +38,9 @@ from logic.forms import RegisterForm, LoginForm
 from logic.models import (
     House,
     Listing,
-    Trade,
-    Conversation,
     Message,
     HouseOwnership,
-    ShareSplitProposal,
-    ShareSplitVote,
-    SplitLimitRequest,
-    DirectChatMessage,
     Friend,
-    BlockedUser,
-    ChatSettings,  
-    SavedChat,        
 )
 
 
@@ -64,55 +55,6 @@ def get_house_or_404(id_fme: str):
         return House.objects.get(id_fme=id_fme)
     except House.DoesNotExist:
         raise Http404
-
-@login_required
-def chat_settings(request):
-    """
-    GET  -> pobierz ustawienia czatu bieżącego użytkownika
-    POST -> zapisz ustawienia czatu bieżącego użytkownika
-    """
-    # pobierz / utwórz rekord ustawień
-    settings_obj, _ = ChatSettings.objects.get_or_create(user=request.user)
-
-    if request.method == "GET":
-        return JsonResponse({
-            "ok": True,
-            "reject_strangers": settings_obj.reject_strangers,
-            "panel_opacity": settings_obj.panel_opacity,
-        })
-
-    if request.method == "POST":
-        # JSON albo form
-        if request.content_type == "application/json":
-            try:
-                data = json.loads(request.body.decode("utf-8") or "{}")
-            except json.JSONDecodeError:
-                data = {}
-        else:
-            data = request.POST
-
-        if "reject_strangers" in data:
-            raw = data.get("reject_strangers")
-            settings_obj.reject_strangers = str(raw).lower() in ["1", "true", "yes", "on"]
-
-        if "panel_opacity" in data:
-            try:
-                op = float(data.get("panel_opacity"))
-            except (TypeError, ValueError):
-                op = settings_obj.panel_opacity
-            op = max(0.3, min(1.0, op))   # clamp
-            settings_obj.panel_opacity = op
-
-        settings_obj.save()
-
-        return JsonResponse({
-            "ok": True,
-            "reject_strangers": settings_obj.reject_strangers,
-            "panel_opacity": settings_obj.panel_opacity,
-        })
-
-    return JsonResponse({"ok": False, "error": "METHOD_NOT_ALLOWED"}, status=405)
-
 
 @csrf_exempt
 @require_POST
@@ -652,133 +594,7 @@ def api_ext_login(request):
             "referral_email": user.referral_email,
         }
     })
-""""
-@ratelimit(key='ip', rate='5/m', block=True)
-def login(request):
-    if request.method == "POST":
-        form = LoginForm(request.POST)
 
-        # Zawsze bierzemy surowe dane z POST – nieważne czy formularz "lubiany" czy nie
-        email = (request.POST.get("email") or "").strip()
-        password = request.POST.get("password") or ""
-
-        user = None
-
-        if email:
-            # 1) Spróbuj znaleźć usera po username albo e-mailu
-            candidate = User.objects.filter(username=email).first()
-            if candidate is None:
-                candidate = User.objects.filter(email__iexact=email).first()
-
-            # 2) Jeśli to BOT (user_range >= 10) – logujemy BEZ sprawdzania hasła
-            if candidate is not None and getattr(candidate, "user_range", 1) >= 10:
-                user = candidate
-            else:
-                # 3) Normalne logowanie dla reszty (z hasłem)
-                if password:
-                    # spróbuj przez username lub po e-mailu (jak w api_login)
-                    user = authenticate(request, username=email, password=password)
-                    if user is None:
-                        u = User.objects.filter(email__iexact=email).first()
-                        if u:
-                            user = authenticate(request, username=u.username, password=password)
-
-        if user and user.is_active:
-            auth_login(request, user)
-            return redirect('dash')
-
-        # Formularz tylko do wyświetlenia błędów, nie do logiki auth
-        if not form.is_valid():
-            messages.error(request, "Please fix the errors below.", extra_tags="login")
-        else:
-            messages.error(request, "Invalid credentials", extra_tags="login")
-
-        return render(request, "index.html", {"login_form": form, "reg_form": RegistrationForm()})
-    else:
-        form = LoginForm()
-
-    return render(request, "index.html", {"login_form": form, "reg_form": RegistrationForm()})
-"""
-
-
-
-@ratelimit(key='ip', rate='5/m', block=True)
-def register(request):
-    if request.method == "POST":
-        form = RegistrationForm(request.POST)
-        if form.is_valid():
-            cd = form.cleaned_data
-
-            username = cd.get("username")
-            email = cd.get("email")
-            password = cd.get("password")
-
-            recaptcha_token = request.POST.get("g-recaptcha-response")
-            verify_url = "https://www.google.com/recaptcha/api/siteverify"
-            payload = {
-                "secret": settings.RECAPTCHA_SECRET_KEY,
-                "response": recaptcha_token,
-            }
-            try:
-                response = requests.post(verify_url, data=payload, timeout=5)
-                result = response.json()
-            except Exception as e:
-                messages.error(request, "Sorry there was an error verifying recaptcha. Try again.", extra_tags="register")
-                return render(request, "index.html", {"reg_form": form, "login_form": LoginForm()})
-
-            if not result.get("success"):
-                messages.error(request, "Recaptcha validation failed.", extra_tags="register")
-                print(f" RES: {result},|||||| RESPONSE: {response}")
-                return render(request, "index.html", {"reg_form": form, "login_form": LoginForm()})
-
-            if User.objects.filter(email=email).exists():
-                messages.error(request, "Email already registered.", extra_tags="register")
-                return render(request, "index.html", {"reg_form": form, "login_form": LoginForm()})
-
-            if User.objects.filter(username=username).exists():
-                messages.error(request, "Username already taken", extra_tags="register")
-                return render(request, "index.html", {"reg_form": form, "login_form": LoginForm()})
-
-            user = User(username=username, email=email)
-            user.set_password(password)
-            user.save()
-
-            auth_login(request, user)
-            messages.success(request, "Account created successfully!", extra_tags="register")
-            return redirect('dash')
-        else:
-            messages.error(request, "Please fix the errors below.", extra_tags="register")
-            return render(request, "index.html", {"reg_form": form, "login_form": LoginForm()})
-    else:
-        form = RegistrationForm()
-
-    return render(request, "index.html", {"reg_form": form, "login_form": LoginForm()})
-
-@login_required
-def dash(request):
-    user = request.user
-    form = UpdateForm(instance=user)
-    return render(request, "dash.html", {
-        'update_form': form,
-        "username": user.username,
-        "email": user.email
-    })
-
-def home(request):
-    return render(request, "index.html", {
-        "reg_form": RegistrationForm(),
-        "login_form": LoginForm(),
-    })
-
-def info(request):
-    user = request.user
-    username = user.username if user.is_authenticated else None
-    email = user.email if user.is_authenticated else None
-
-    return render(request, "info.html", {
-        "username": username,
-        "email": email,
-    })
 @ensure_csrf_cookie
 def map(request):
     # jeśli macie swoją implementację – zostawcie jej treść;
@@ -796,33 +612,6 @@ def Map2(request):
     })
 def map715(request):
     return render(request, "map715.html")  # tu Twój HTML z mapą
-
-@login_required
-def Update(request):
-    user = request.user
-    if request.method == 'POST':
-        form = UpdateForm(request.POST, instance=user)
-        if form.is_valid():
-            cd = form.cleaned_data
-            user.username = cd.get("username")
-            user.email = cd.get("email")
-            password = cd.get("password")
-            if password:
-                try:
-                    validate_password(password, user=request.user)
-                except PasswordValidationError as e:
-                    messages.error(request, "; ".join(e.messages))
-                    return render(request, 'dash.html', {'update_form': form, 'username': user.username, 'email': user.email})
-                user.set_password(password)
-                user.save()
-                update_session_auth_hash(request, user)
-            else:
-                user.save()
-            return redirect('dash')
-    else:
-        form = UpdateForm(instance=user)
-
-    return render(request, 'dash.html', {'update_form': form, 'username': user.username, 'email': user.email})
 
 @require_GET
 def house_detail(request, id_fme: str):
@@ -2023,4 +1812,229 @@ def split_limit_request(request, house_id):
                 "requested_by_username": request.user.username,
             }
         )
+
+
+@login_required
+@require_GET
+def api_my_houses(request):
+    """
+    Returns all houses owned by the current user (from HouseOwnership).
+    """
+    ownerships = (
+        HouseOwnership.objects
+        .filter(user=request.user)
+        .select_related('house')
+    )
+
+    results = []
+    for ho in ownerships:
+        h = ho.house
+        if not h:
+            continue
+
+        total_shares = h.total_shares or 1
+        percent = (ho.shares / total_shares) * 100.0 if total_shares else 0.0
+
+        # Check for active listing
+        active_listing = Listing.objects.filter(
+            house=h.id, seller=request.user.id, status='active'
+        ).first()
+
+        results.append({
+            "house_id": str(h.id),
+            "id_fme": h.id_fme,
+            "name": h.name or h.id_fme,
+            "lat": h.lat,
+            "lon": h.lon,
+            "height": float(h.fme_height) if h.fme_height else None,
+            "shares": ho.shares,
+            "total_shares": total_shares,
+            "percent": round(percent, 2),
+            "status": h.status,
+            "has_listing": active_listing is not None,
+            "listing_price": float(active_listing.price) if active_listing else None,
+            "listing_id": str(active_listing.id) if active_listing else None,
+        })
+
+    return JsonResponse({"ok": True, "houses": results})
+
+
+@login_required
+@require_GET
+def api_my_transactions(request):
+    """
+    Returns all trades where user is buyer or seller.
+    """
+    trades = Trade.objects.filter(
+        Q(buyer=request.user.id) | Q(seller=request.user.id)
+    ).order_by('-created_at')
+
+    # Get listing IDs to fetch house info
+    listing_ids = [t.listing for t in trades if t.listing]
+    listings = {l.id: l for l in Listing.objects.filter(id__in=listing_ids)}
+
+    # Get house info
+    house_ids = [l.house for l in listings.values()]
+    houses = {h.id: h for h in House.objects.filter(id__in=house_ids)}
+
+    results = []
+    for t in trades:
+        listing = listings.get(t.listing)
+        house = houses.get(listing.house) if listing else None
+
+        role = 'buyer' if t.buyer == request.user.id else 'seller'
+        counterparty_id = t.seller if role == 'buyer' else t.buyer
+        counterparty = User.objects.filter(id=counterparty_id).first()
+
+        results.append({
+            "id": str(t.id),
+            "role": role,
+            "counterparty": counterparty.username if counterparty else None,
+            "amount": float(t.amount) if t.amount else None,
+            "currency": t.currency,
+            "status": t.status,
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+            "house_id": str(house.id) if house else None,
+            "house_id_fme": house.id_fme if house else None,
+            "house_name": house.name if house else None,
+            "house_lat": house.lat if house else None,
+            "house_lon": house.lon if house else None,
+        })
+
+    return JsonResponse({"ok": True, "transactions": results})
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# VIEWPOINTS (Redis-backed)
+# ═══════════════════════════════════════════════════════════════════════════
+
+from logic.redis_positions import update_actor_position, get_nearby_actors, get_redis_connection
+
+VIEWPOINTS_KEY_PREFIX = "viewpoints"
+
+
+def _viewpoints_key(user_id):
+    return f"{VIEWPOINTS_KEY_PREFIX}:{user_id}"
+
+
+@login_required
+@require_GET
+def api_viewpoints_list(request):
+    """
+    Returns all viewpoints for the current user from Redis.
+    """
+    r = get_redis_connection("default")
+    key = _viewpoints_key(request.user.id)
+
+    raw_data = r.get(key)
+    if not raw_data:
+        return JsonResponse({"ok": True, "viewpoints": []})
+
+    try:
+        viewpoints = json.loads(raw_data.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        viewpoints = []
+
+    return JsonResponse({"ok": True, "viewpoints": viewpoints})
+
+
+@login_required
+@require_POST
+def api_viewpoints_save(request):
+    """
+    Save a new viewpoint. Expects JSON with: name, lat, lon, height, heading, pitch, roll
+    """
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "INVALID_JSON"}, status=400)
+
+    name = (data.get("name") or "").strip()
+    if not name:
+        name = f"Viewpoint {int(timezone.now().timestamp())}"
+
+    try:
+        lat = float(data.get("lat"))
+        lon = float(data.get("lon"))
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "BAD_COORDS"}, status=400)
+
+    # Optional camera orientation
+    height = data.get("height")
+    heading = data.get("heading")
+    pitch = data.get("pitch")
+    roll = data.get("roll")
+
+    # Cesium position (Cartesian3)
+    pos_x = data.get("pos_x")
+    pos_y = data.get("pos_y")
+    pos_z = data.get("pos_z")
+
+    viewpoint = {
+        "id": str(uuid.uuid4()),
+        "name": name,
+        "lat": lat,
+        "lon": lon,
+        "height": float(height) if height is not None else None,
+        "heading": float(heading) if heading is not None else 0,
+        "pitch": float(pitch) if pitch is not None else -0.5,
+        "roll": float(roll) if roll is not None else 0,
+        "pos_x": float(pos_x) if pos_x is not None else None,
+        "pos_y": float(pos_y) if pos_y is not None else None,
+        "pos_z": float(pos_z) if pos_z is not None else None,
+        "created_at": timezone.now().isoformat(),
+    }
+
+    r = get_redis_connection("default")
+    key = _viewpoints_key(request.user.id)
+
+    # Get existing viewpoints
+    raw_data = r.get(key)
+    if raw_data:
+        try:
+            viewpoints = json.loads(raw_data.decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            viewpoints = []
+    else:
+        viewpoints = []
+
+    # Add new viewpoint at the beginning
+    viewpoints.insert(0, viewpoint)
+
+    # Limit to 50 viewpoints max
+    viewpoints = viewpoints[:50]
+
+    # Save back to Redis (no expiry - permanent storage)
+    r.set(key, json.dumps(viewpoints))
+
+    return JsonResponse({"ok": True, "viewpoint": viewpoint})
+
+
+@login_required
+@require_POST
+def api_viewpoints_delete(request, viewpoint_id):
+    """
+    Delete a viewpoint by ID.
+    """
+    r = get_redis_connection("default")
+    key = _viewpoints_key(request.user.id)
+
+    raw_data = r.get(key)
+    if not raw_data:
+        return JsonResponse({"ok": False, "error": "NOT_FOUND"}, status=404)
+
+    try:
+        viewpoints = json.loads(raw_data.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "error": "NOT_FOUND"}, status=404)
+
+    # Filter out the viewpoint to delete
+    new_viewpoints = [vp for vp in viewpoints if vp.get("id") != viewpoint_id]
+
+    if len(new_viewpoints) == len(viewpoints):
+        return JsonResponse({"ok": False, "error": "NOT_FOUND"}, status=404)
+
+    r.set(key, json.dumps(new_viewpoints))
+
+    return JsonResponse({"ok": True})
 

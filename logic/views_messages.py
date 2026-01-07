@@ -8,7 +8,7 @@ from django.utils import timezone
 from decimal import Decimal, InvalidOperation
 from django.db.utils import ProgrammingError, OperationalError
 from django.contrib.auth import get_user_model
-from logic.models import Conversation, Message, House, Listing, Trade, Offer, Negotiation, HouseOwnership
+from logic.models import Message, House, Listing, HouseOwnership
 
 from logic.ai_agent import generate_ai_reply
 

@@ -1,6 +1,6 @@
 import os
 from openai import OpenAI
-from .models import Conversation, Message, User
+from .models import Message, User
 
 
 def get_openai_client() -> OpenAI:

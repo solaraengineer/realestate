@@ -4,15 +4,12 @@ from logic import views
 from logic import views_messages
 from logic import views_auth
 from logic import views_listings
+from logic import views_payment
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    # Strony
-    path('register', views.register, name='register'),
-    #path('login', views.login, name='login'),
-    path('dash', views.dash, name='dash'),
-    path('Update', views.Update, name='Update'),
+    # Strony,
     path('map', views.map, name='map'),
     path('Map2', views.Map2, name='Map2'),  # jeśli faktycznie chcesz z dużej litery
     path('map775', views.map775, name='map775'),
@@ -74,13 +71,42 @@ urlpatterns = [
     path('api/auth/whoami/', views_auth.api_whoami, name='api_whoami'),
     path('api/auth/register/', views_auth.api_register, name='api_register'),
     path('api/auth/csrf/',       views_auth.api_csrf,       name='api_csrf'),
-    path('api/profile/', views_auth.api_profile, name='api_profile'),
-    path('api/profile/update/', views_auth.api_profile_update, name='api_profile_update'),
-    path('api/profile/password/', views_auth.api_password_change, name='api_password_change'),
+    path('api/profile/', views_auth.api_profile_update, name='api_profile_update'),
     #Listings
     path('api/listings/', views_listings.api_listings, name='api_listings'),
     path('api/listings/cheapest/', views_listings.api_listings_cheapest, name='api_listings_cheapest'),
     path('api/listings/mine/', views_listings.api_my_listings, name='api_my_listings'),
     path('api/listings/house/<uuid:house_id>/', views_listings.api_listings_by_house, name='api_listings_by_house'),
     path('api/listings/<uuid:listing_id>/', views_listings.api_listing_detail, name='api_listing_detail'),
+
+    # My Houses and Transactions
+    path('api/my/houses/', views.api_my_houses, name='api_my_houses'),
+    path('api/my/transactions/', views.api_my_transactions, name='api_my_transactions'),
+
+    # Viewpoints (Redis-backed)
+    path('api/viewpoints/', views.api_viewpoints_list, name='api_viewpoints_list'),
+    path('api/viewpoints/save/', views.api_viewpoints_save, name='api_viewpoints_save'),
+    path('api/viewpoints/<str:viewpoint_id>/delete/', views.api_viewpoints_delete, name='api_viewpoints_delete'),
+
+    # Messages API
+    path('api/messages/', views_messages.messages_list, name='messages_list'),
+    path('api/messages/archived/', views_messages.messages_archived, name='messages_archived'),
+    path('api/messages/prepare/', views_messages.messages_prepare, name='messages_prepare'),
+    path('api/messages/start/', views_messages.messages_start, name='messages_start'),
+    path('api/messages/<uuid:conv_id>/', views_messages.messages_thread, name='messages_thread'),
+    path('api/messages/<uuid:conv_id>/send/', views_messages.messages_send, name='messages_send'),
+    path('api/messages/<uuid:conv_id>/offer/', views_messages.messages_offer, name='messages_offer'),
+    path('api/messages/<uuid:conv_id>/accept/', views_messages.messages_accept, name='messages_accept'),
+    path('api/messages/<uuid:conv_id>/finalize/', views_messages.messages_finalize, name='messages_finalize'),
+    path('api/messages/<uuid:conv_id>/stop/', views_messages.messages_stop, name='messages_stop'),
+    #Payments
+    path('api/checkout/', views_payment.api_checkout, name='api_checkout'),
+    path('api/stripe/onboard/', views_payment.api_stripe_onboard),
+    path('api/stripe/onboard/complete/', views_payment.api_stripe_onboard_complete),
+    path('api/stripe/onboard/refresh/', views_payment.api_stripe_onboard_refresh),
+    path('api/stripe/status/', views_payment.api_stripe_status),
+    path('api/checkout/', views_payment.api_checkout),
+    path('api/stripe/webhook/', views_payment.stripe_webhook),
+    path('payment/success/', views_payment.payment_success),
+    path('payment/cancel/', views_payment.payment_cancel),
 ]

@@ -22,6 +22,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 RATELIMIT_IP_META_KEY = "HTTP_X_REAL_IP"
 AUTH_USER_MODEL = 'logic.User'
 LOGIN_URL = '/'
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY')
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 

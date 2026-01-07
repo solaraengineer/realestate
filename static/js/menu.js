@@ -78,11 +78,19 @@
     allPanels.forEach(panel => {
       if (panel) panel.style.display = 'none';
     });
+    // Reset appPanel position class
+    if (appPanel) appPanel.classList.remove('panel-left');
   }
 
-  function showPanel(panel) {
+  function showPanel(panel, position) {
     hideAllPanels();
-    if (panel) panel.style.display = 'block';
+    if (panel) {
+      // Add position class if specified
+      if (position === 'left') {
+        panel.classList.add('panel-left');
+      }
+      panel.style.display = 'block';
+    }
   }
 
   window.hideAllPanels = hideAllPanels;
@@ -385,7 +393,7 @@
           break;
 
         case 'offers':
-          showPanel(offersPanel);
+          showPanel(offersPanel); // center (default)
           const saleBody = document.getElementById('saleBody');
           if (saleBody) saleBody.style.display = 'block';
           const saleToggle = document.getElementById('saleToggle');
@@ -396,43 +404,33 @@
           }
           break;
 
-        case 'search':
-          toast('Szukaj - coming soon');
-          break;
-
-        case 'goto':
-          toast('Idź do - coming soon');
-          break;
-
         case 'homes':
-          showPanel(appPanel);
+          showPanel(appPanel, 'left'); // LEFT SIDE
           document.getElementById('appPanelTitle').textContent = 'Moje domy';
-          document.getElementById('appPanelBody').innerHTML = '<p style="color:var(--text-muted)">Twoje nieruchomości pojawią się tutaj.</p>';
+          document.getElementById('appPanelBody').innerHTML = '<p class="loading-text">Ładowanie...</p>';
+          loadMyHouses();
           break;
 
         case 'transactions':
-          showPanel(transactionsPanel);
+          showPanel(appPanel, 'left'); // LEFT SIDE
+          document.getElementById('appPanelTitle').textContent = 'Moje transakcje';
+          document.getElementById('appPanelBody').innerHTML = '<p class="loading-text">Ładowanie...</p>';
+          loadMyTransactions();
           break;
 
         case 'watchlist':
-          showPanel(appPanel);
+          showPanel(appPanel, 'left');
           document.getElementById('appPanelTitle').textContent = 'Moje obserwacje';
           document.getElementById('appPanelBody').innerHTML = '<p style="color:var(--text-muted)">Obserwowane nieruchomości pojawią się tutaj.</p>';
           break;
 
         case 'messages':
-          showPanel(appPanel);
+          showPanel(appPanel, 'left');
           document.getElementById('appPanelTitle').textContent = 'Wiadomości';
-          document.getElementById('appPanelBody').innerHTML = '<p style="color:var(--text-muted)">Twoje wiadomości pojawią się tutaj.</p>';
+          document.getElementById('appPanelBody').innerHTML = '<p class="loading-text">Ładowanie...</p>';
           if (typeof window.renderMessagesPanel === 'function') {
             window.renderMessagesPanel();
           }
-          break;
-
-        case 'friends':
-          showPanel(appPanel);
-          document.getElementById('appPanelTitle').textContent = 'Friends';
-          document.getElementById('appPanelBody').innerHTML = '<p style="color:var(--text-muted)">Your friends will appear here.</p>';
           break;
 
         case 'viewpoints':
@@ -443,31 +441,69 @@
           break;
 
         case 'profile':
-          showPanel(appPanel);
+          showPanel(appPanel, 'left');
           document.getElementById('appPanelTitle').textContent = 'Moje dane';
           document.getElementById('appPanelBody').innerHTML = `
-            <div style="display:grid;gap:14px;">
-              <label style="color:var(--text-muted);font-size:12px;">Email
-                <input class="input" type="email" value="${window.currentUsername || ''}" disabled style="margin-top:6px;opacity:0.6;">
-              </label>
-              <label style="color:var(--text-muted);font-size:12px;">Imię
-                <input class="input" type="text" placeholder="Jan" style="margin-top:6px;">
-              </label>
-              <label style="color:var(--text-muted);font-size:12px;">Nazwisko
-                <input class="input" type="text" placeholder="Kowalski" style="margin-top:6px;">
-              </label>
-              <button class="btn-ghost" style="margin-top:8px;">Zapisz zmiany</button>
+            <div class="profile-form">
+              <div class="profile-section">
+                <div class="profile-section-title">Dane osobowe</div>
+                <label class="form-label">Imię
+                  <input class="input" type="text" id="profileFirstName" placeholder="Jan">
+                </label>
+                <label class="form-label">Nazwisko
+                  <input class="input" type="text" id="profileLastName" placeholder="Kowalski">
+                </label>
+              </div>
+
+              <div class="profile-section">
+                <div class="profile-section-title">Adres</div>
+                <label class="form-label">Adres
+                  <input class="input" type="text" id="profileAddress" placeholder="ul. Przykładowa 123/45">
+                </label>
+                <label class="form-label">Miasto
+                  <input class="input" type="text" id="profileCity" placeholder="Warszawa">
+                </label>
+                <label class="form-label">Kod pocztowy
+                  <input class="input" type="text" id="profilePostalCode" placeholder="00-000">
+                </label>
+                <label class="form-label">Kraj
+                  <input class="input" type="text" id="profileCountry" placeholder="Polska">
+                </label>
+              </div>
+
+              <div class="profile-section">
+                <div class="profile-section-title">Dane do faktury</div>
+                <label class="form-label">Nazwa firmy (opcjonalnie)
+                  <input class="input" type="text" id="profileCompanyName" placeholder="Firma Sp. z o.o.">
+                </label>
+                <label class="form-label">NIP (opcjonalnie)
+                  <input class="input" type="text" id="profileVatNumber" placeholder="PL1234567890">
+                </label>
+              </div>
+
+              <div class="profile-section">
+                <div class="profile-section-title">Bezpieczeństwo</div>
+                <label class="form-label">Obecne hasło
+                  <input class="input" type="password" id="profileCurrentPassword" placeholder="••••••••">
+                </label>
+                <label class="form-label">Nowe hasło
+                  <input class="input" type="password" id="profileNewPassword" placeholder="••••••••">
+                </label>
+                <label class="form-label">Potwierdź nowe hasło
+                  <input class="input" type="password" id="profileConfirmPassword" placeholder="••••••••">
+                </label>
+                <label class="checkbox-row">
+                  <input type="checkbox" id="profileTwoFactor">
+                  <span>Włącz weryfikację dwuetapową (2FA)</span>
+                </label>
+              </div>
+
+              <button class="btn-save" id="saveProfileBtn">Zapisz zmiany</button>
             </div>
           `;
+          loadProfileData();
+          document.getElementById('saveProfileBtn')?.addEventListener('click', saveProfile);
           break;
-
-        case 'admin':
-          showPanel(appPanel);
-          document.getElementById('appPanelTitle').textContent = 'WIELKI ADMIN';
-          document.getElementById('appPanelBody').innerHTML = '<p style="color:var(--text-muted)">Panel admina.</p>';
-          break;
-
-        // logout handled by logoutBtn directly
       }
     });
   }
@@ -485,6 +521,7 @@
     if (!panel) return;
 
     panel.style.display = 'none';
+    panel.classList.remove('panel-left');
 
     if (id === 'authPanel') {
       backToMenu();
@@ -575,6 +612,294 @@
   // Export
   window.getCookie = Auth?.getCookie;
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MY HOUSES - REDESIGNED CARDS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async function loadMyHouses() {
+    const body = document.getElementById('appPanelBody');
+    if (!body) return;
+
+    try {
+      const res = await fetch('/api/my/houses/', { credentials: 'same-origin' });
+      const data = await res.json();
+
+      if (!data.ok) {
+        body.innerHTML = '<p style="color:var(--danger);">Błąd ładowania</p>';
+        return;
+      }
+
+      if (!data.houses || data.houses.length === 0) {
+        body.innerHTML = '<p style="color:var(--text-muted)">Nie posiadasz żadnych nieruchomości.</p>';
+        return;
+      }
+
+      let html = '<div class="cards-list">';
+      for (const h of data.houses) {
+        const statusBadge = h.has_listing
+          ? `<span class="status-badge for-sale">Na sprzedaż</span>`
+          : '';
+
+        const priceDisplay = h.has_listing && h.listing_price
+          ? `<div class="price">${Number(h.listing_price).toLocaleString('pl-PL')} PLN</div>`
+          : '';
+
+        html += `
+          <div class="house-item" data-lat="${h.lat || ''}" data-lon="${h.lon || ''}" data-id-fme="${h.id_fme || ''}">
+            <div class="card-left">
+              <div class="house-name">${h.name || 'Dom'}</div>
+              <div class="house-shares">${h.shares}/${h.total_shares} udziałów (${h.percent}%)</div>
+            </div>
+            <div class="card-right">
+              ${statusBadge}
+              ${priceDisplay}
+            </div>
+          </div>
+        `;
+      }
+      html += '</div>';
+      body.innerHTML = html;
+
+      // Add click handlers for fly-to
+      body.querySelectorAll('.house-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const lat = parseFloat(el.dataset.lat);
+          const lon = parseFloat(el.dataset.lon);
+          const idFme = el.dataset.idFme;
+
+          if (lat && lon && window.__viewer) {
+            window.__viewer.camera.flyTo({
+              destination: Cesium.Cartesian3.fromDegrees(lon, lat, 500),
+              duration: 1.5
+            });
+          }
+
+          if (idFme && typeof window.showFeaturePanel === 'function') {
+            window.showFeaturePanel(idFme);
+          }
+        });
+      });
+
+    } catch (e) {
+      console.error('[MyHouses]', e);
+      body.innerHTML = '<p style="color:var(--danger);">Błąd połączenia</p>';
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MY TRANSACTIONS - REDESIGNED CARDS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async function loadMyTransactions() {
+    const body = document.getElementById('appPanelBody');
+    if (!body) return;
+
+    try {
+      const res = await fetch('/api/my/transactions/', { credentials: 'same-origin' });
+      const data = await res.json();
+
+      if (!data.ok) {
+        body.innerHTML = '<p style="color:var(--danger);">Błąd ładowania</p>';
+        return;
+      }
+
+      if (!data.transactions || data.transactions.length === 0) {
+        body.innerHTML = '<p style="color:var(--text-muted)">Brak transakcji.</p>';
+        return;
+      }
+
+      let html = '<div class="cards-list">';
+      for (const t of data.transactions) {
+        const isBuyer = t.role === 'buyer';
+        const roleLabel = isBuyer ? 'Kupno' : 'Sprzedaż';
+        const badgeClass = isBuyer ? 'bought' : 'sold';
+        const dateStr = t.created_at ? new Date(t.created_at).toLocaleDateString('pl-PL', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        }) : '';
+
+        const counterpartyText = t.counterparty
+          ? (isBuyer ? 'od ' : 'do ') + t.counterparty
+          : '';
+
+        html += `
+          <div class="transaction-item" data-lat="${t.house_lat || ''}" data-lon="${t.house_lon || ''}" data-id-fme="${t.house_id_fme || ''}">
+            <div class="card-left">
+              <div class="tx-name">${t.house_name || 'Dom'}</div>
+              <div class="tx-counterparty">${counterpartyText}</div>
+              <div class="tx-date">${dateStr}</div>
+            </div>
+            <div class="card-right">
+              <span class="status-badge ${badgeClass}">${roleLabel}</span>
+              <div class="price">${t.amount ? t.amount.toLocaleString('pl-PL') : '—'} ${t.currency || 'PLN'}</div>
+            </div>
+          </div>
+        `;
+      }
+      html += '</div>';
+      body.innerHTML = html;
+
+      // Add click handlers for fly-to
+      body.querySelectorAll('.transaction-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const lat = parseFloat(el.dataset.lat);
+          const lon = parseFloat(el.dataset.lon);
+          const idFme = el.dataset.idFme;
+
+          if (lat && lon && window.__viewer) {
+            window.__viewer.camera.flyTo({
+              destination: Cesium.Cartesian3.fromDegrees(lon, lat, 500),
+              duration: 1.5
+            });
+          }
+
+          if (idFme && typeof window.showFeaturePanel === 'function') {
+            window.showFeaturePanel(idFme);
+          }
+        });
+      });
+
+    } catch (e) {
+      console.error('[MyTransactions]', e);
+      body.innerHTML = '<p style="color:var(--danger);">Błąd połączenia</p>';
+    }
+  }
+
   console.log('[Menu] Initialized');
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PROFILE DATA - LOAD & SAVE
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async function loadProfileData() {
+    try {
+      const res = await fetch('/api/profile/', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        credentials: 'same-origin',
+      });
+
+       const data = await res.json();
+
+      if (!data.ok) return;
+
+      const fields = {
+        profileFirstName: data.first_name,
+        profileLastName: data.last_name,
+        profileAddress: data.address,
+        profileCity: data.city,
+        profilePostalCode: data.postal_code,
+        profileCountry: data.country,
+        profileCompanyName: data.company_name,
+        profileVatNumber: data.vat_number
+      };
+
+      for (const [id, value] of Object.entries(fields)) {
+        const el = document.getElementById(id);
+        if (el && value) el.value = value;
+      }
+
+      const twoFactorEl = document.getElementById('profileTwoFactor');
+      if (twoFactorEl) twoFactorEl.checked = !!data.two_factor_enabled;
+
+    } catch (e) {
+      console.warn('[Profile] Load error:', e);
+    }
+  }
+
+  async function saveProfile() {
+    const btn = document.getElementById('saveProfileBtn');
+    if (!btn) return;
+
+    const newPassword = document.getElementById('profileNewPassword')?.value || '';
+    const confirmPassword = document.getElementById('profileConfirmPassword')?.value || '';
+
+    if (newPassword && newPassword !== confirmPassword) {
+      toast('Hasła nie są takie same');
+      return;
+    }
+
+    const data = {
+      first_name: document.getElementById('profileFirstName')?.value?.trim() || '',
+      last_name: document.getElementById('profileLastName')?.value?.trim() || '',
+      address: document.getElementById('profileAddress')?.value?.trim() || '',
+      city: document.getElementById('profileCity')?.value?.trim() || '',
+      postal_code: document.getElementById('profilePostalCode')?.value?.trim() || '',
+      country: document.getElementById('profileCountry')?.value?.trim() || '',
+      company_name: document.getElementById('profileCompanyName')?.value?.trim() || '',
+      vat_number: document.getElementById('profileVatNumber')?.value?.trim() || '',
+      two_factor_enabled: document.getElementById('profileTwoFactor')?.checked || false,
+      current_password: document.getElementById('profileCurrentPassword')?.value || '',
+      new_password: newPassword,
+    };
+
+    btn.disabled = true;
+    btn.textContent = 'Zapisywanie...';
+
+    try {
+      const res = await fetch('/api/profile/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify(data)
+      });
+
+      const result = await res.json();
+
+      if (!res.ok || !result.ok) {
+        throw new Error(result.error || 'Save failed');
+      }
+
+      // Clear password fields after success
+      document.getElementById('profileCurrentPassword').value = '';
+      document.getElementById('profileNewPassword').value = '';
+      document.getElementById('profileConfirmPassword').value = '';
+
+      toast('Dane zapisane');
+    } catch (e) {
+      console.error('[Profile] Save error:', e);
+      toast(e.message || 'Błąd zapisywania');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Zapisz zmiany';
+    }
+  }
+
 })();
+async function buyListing(listingId) {
+    try {
+        const res = await fetch('/api/checkout/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ listing_id: listingId })
+        });
+
+        const data = await res.json();
+
+        if (!data.ok) {
+            toast(data.error || 'Błąd płatności');
+            return;
+        }
+
+        // redirect to stripe checkout
+        window.location.href = data.checkout_url;
+
+    } catch (e) {
+        console.error('[Checkout]', e);
+        toast('Błąd połączenia');
+    }
+}
+
+// expose globally
+window.buyListing = buyListing;
