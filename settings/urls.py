@@ -1,7 +1,6 @@
 from django.contrib import admin
 from django.urls import path
 from logic import views
-from logic import views_messages
 from logic import views_auth
 from logic import views_listings
 from logic import views_payment
@@ -29,9 +28,7 @@ urlpatterns = [
     path('api/house/<str:id_fme>/unlist/', views.house_unlist, name='house_unlist'),
     path('api/house/<str:id_fme>/buy/', views.house_buy, name='house_buy'),
     path('api/house/<str:id_fme>/', views.house_detail, name='house_detail'),
-    path('api/house/<str:id_fme>/takeover/', views_messages.house_takeover, name='house_takeover'),
     path('api/house/<str:id_fme>/', views.house_detail, name='house_detail'),
-    path('api/house/<str:id_fme>/takeover/', views_messages.house_takeover, name='house_takeover'),
     path('api/listings/nearby/', views.listings_nearby, name='listings_nearby'),
     path('api/houses/sold_nearby/', views.houses_sold_nearby, name='houses_sold_nearby'),
     path('api/houses/free_nearby/', views.houses_free_nearby, name='houses_free_nearby'),
@@ -88,17 +85,6 @@ urlpatterns = [
     path('api/viewpoints/save/', views.api_viewpoints_save, name='api_viewpoints_save'),
     path('api/viewpoints/<str:viewpoint_id>/delete/', views.api_viewpoints_delete, name='api_viewpoints_delete'),
 
-    # Messages API
-    path('api/messages/', views_messages.messages_list, name='messages_list'),
-    path('api/messages/archived/', views_messages.messages_archived, name='messages_archived'),
-    path('api/messages/prepare/', views_messages.messages_prepare, name='messages_prepare'),
-    path('api/messages/start/', views_messages.messages_start, name='messages_start'),
-    path('api/messages/<uuid:conv_id>/', views_messages.messages_thread, name='messages_thread'),
-    path('api/messages/<uuid:conv_id>/send/', views_messages.messages_send, name='messages_send'),
-    path('api/messages/<uuid:conv_id>/offer/', views_messages.messages_offer, name='messages_offer'),
-    path('api/messages/<uuid:conv_id>/accept/', views_messages.messages_accept, name='messages_accept'),
-    path('api/messages/<uuid:conv_id>/finalize/', views_messages.messages_finalize, name='messages_finalize'),
-    path('api/messages/<uuid:conv_id>/stop/', views_messages.messages_stop, name='messages_stop'),
     #Payments
     path('api/checkout/', views_payment.api_checkout, name='api_checkout'),
     path('api/stripe/onboard/', views_payment.api_stripe_onboard),

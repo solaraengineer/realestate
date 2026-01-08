@@ -235,14 +235,11 @@ def api_profile_update(request):
         if 'two_factor_enabled' in data:
             user.two_factor_enabled = bool(data['two_factor_enabled'])
 
-        if 'current_password' in data:
-            if user.password == data['current_password']:
-                return JsonResponse({"ok": False, "error": "SAME_PASSWORD"}, status=400)
-            password = super_clean(data['current_password'], 128)
-            if not password:
-                return JsonResponse({"ok": False, "error": "INVALID_PASSWORD"}, status=400)
-            hashed_pw = validate_password(password)
-            user.set_password(hashed_pw)
+        if 'new_password' in data:
+            if not user.check_password(data['current_password']):
+                return JsonResponse({"ok": False, "error": "WRONG_PASSWORD"}, status=400)
+            validate_password(data['new_password'])
+            user.set_password(data['new_password'])
 
         user.save()
 

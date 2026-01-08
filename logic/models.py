@@ -11,17 +11,19 @@ class User(AbstractUser):
     referral_email = models.CharField(max_length=255, null=True, blank=True)
     address = models.CharField(max_length=255, null=True, blank=True)
     code = models.CharField(max_length=6, null=True, blank=True)
+    vat = models.CharField(max_length=15, null=True, blank=True)
     stripe_account_id = models.CharField(max_length=255, null=True, blank=True)
     stripe_kyc = models.BooleanField(default=False)
     user_range = models.IntegerField(default=1, db_index=True)
 
 
+
+
 class House(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     address_id = models.UUIDField(null=True, blank=True)
     attrs = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    id_fme = models.TextField(null=True, blank=True)
+    id_fme = models.TextField(primary_key=True)
     fme_levels = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     fme_height = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     lat = models.FloatField(null=True, blank=True)
@@ -30,14 +32,10 @@ class House(models.Model):
     h3_res = models.SmallIntegerField(null=True, blank=True)
     name = models.TextField(null=True, blank=True)
 
-    class Meta:
-        db_table = '"catalog"."houses"'
-
 
 LISTING_STATUS = [
     ('active', 'active'),
     ('pending', 'pending'),
-    ('sold', 'sold'),
     ('cancelled', 'cancelled'),
 ]
 
@@ -105,11 +103,15 @@ class Friend(models.Model):  # singular
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='friend_requests_sent',
+        blank=True,
+        default=''
     )
     friend = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='friend_requests_received',
+        blank=True,
+        default=''
     )
     status = models.CharField(max_length=20, choices=FRIEND_STATUS, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
