@@ -1,0 +1,6 @@
+[
+  { "id": 1, "text": { "pl": "START", "en": "Will you sell me this house?" }, "options": [2,3] },
+  { "id": 2, "text": { "pl": "Czy sprzedasz mi ten dom?", "en": "Yes, available. Make an offer or schedule a viewing?" }, "options": [] },
+  { "id": 3, "text": { "pl": "Chcę złożyć ofertę", "en": "I want to make an offer" }, "requires_input": true, "action": "purchase", "options": [] },
+  { "id": 11, "text": { "pl": "Chcę umówić oglądanie", "en": "I want to schedule a viewing" }, "action": "schedule_visit", "options": [] }
+]

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+
+<html lang="pl">
+<head>
+    {% load static %}
+<meta charset="utf-8"/>
+<title>3D Tiles – Menu + Oferty + Panele</title>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<!-- CesiumJS 1.88 (biblioteka zewnętrzna) -->
+<!--  <script src="libs/cesium/Cesium.js"></script>
+<link href="libs/cesium/Widgets/widgets.css" rel="stylesheet" />  -->
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.132/Build/Cesium/Cesium.js"></script>
+<link href="https://cesium.com/downloads/cesiumjs/releases/1.132/Build/Cesium/Widgets/widgets.css" rel="stylesheet"/>
+<script>
+  Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJiNWE2ZDk0OC0wNDQ3LTQ5NDYtYWYyNy1kNzIxNzhkOGM5ZmEiLCJpZCI6MjA4ODg2LCJpYXQiOjE3MTMyNTUxNjh9.NUfq6JDQxVviq_lfBs9BJq2lkNpr0FGkW-4WhdO0Twk';
+</script>
+<!-- Wewnętrzne style CSS -->
+
+<link href="{% autoescape off %}{% static 'style.css' %}{% endautoescape %}" rel="stylesheet">
+<link href="{% autoescape off %}{% static 'messages.css' %}{% endautoescape %}" rel="stylesheet">
+{% load static %}
+<link rel="stylesheet" href="{% static 'my_homes.css' %}">
+<link rel="stylesheet" href="{% static 'profile.css' %}">
+<link rel="stylesheet" href="{% static 'viewpoints.css' %}">
+<link rel="stylesheet" href="{% static 'login.css' %}">
+<link rel="stylesheet" href="{% static 'transactions.css' %}">
+<link rel="stylesheet" href="{% static 'chat.css' %}">
+
+<!-- PANEL WŁAŚCIWOŚCI (prawy) -->
+<style>
+  html, body { height: 100%; margin: 0; }
+  #cesiumContainer { width: 100%; height: 100vh; }
+</style>
+</head>
+<body>
+<div id="cesiumContainer"></div>
+<!-- MENU (panel po lewej) -->
+<div class="menu-panel" id="menuPanel">
+<div class="menu-row">
+<div class="menu-title">Menu</div>
+<button aria-expanded="false" class="toggle" id="menuToggle">Rozwiń</button>
+</div>
+<!-- Informacja o użytkowniku -->
+<div id="userInfo" style="display:none; font-weight:600; padding:4px 0 8px 12px; color:var(--accent);">
+  User 1234
+</div>
+<div id="menuContent" style="display:none;">
+<!-- ZAWSZE DOSTĘPNE -->
+<div class="section">
+<!--       <div class="section-title">Dostępne</div>   -->
+<div class="section-body" style="display:block;">
+<button class="btn" data-action="offers">Oferty sprzedaży</button>
+<button class="btn" data-action="search">Szukaj</button>
+<button class="btn" data-action="goto">Idź do..</button>
+<button class="btn" data-action="login">Zaloguj</button>
+</div>
+</div>
+<!-- Po zalogowaniu -->
+<div id="postLogin" style="display:none; margin-top:10px;">
+<div class="section">
+<div class="section-body" style="display:block;">
+<button class="btn" data-action="homes">Moje domy</button>
+<button class="btn" data-action="transactions">Moje transakcje</button>
+<button class="btn" data-action="watchlist">Moje obserwacje</button>
+<button class="btn" data-action="messages">Wiadomości</button>
+<button data-action="friends">Friends</button>
+<button class="btn" data-action="viewpoints">My Viewpoints</button>
+<button class="btn" data-action="profile">Moje dane</button>
+<!-- NOWY PRZYCISK WIELKIEGO ADMINA -->
+<button class="btn" data-action="admin">WIELKI ADMIN</button>
+<button class="btn" data-action="logout" id="logoutBtn" style="background:#ef4444;">Wyloguj</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- PANEL OFERT -->
+<div class="offers-panel side-panel" id="offersPanel">
+<!-- Sprzedaż -->
+<div class="section">
+<div class="section-header-row">
+<div class="section-title section-trigger" data-target="#saleBody">Sprzedaż</div>
+<button class="close-btn" data-close="offersPanel">X</button>
+</div>
+<div class="section-body" id="saleBody" style="display:none;">
+<div id="saleFields" style="margin-top:8px;">
+<div class="range-inline">
+<label>Cena od</label><input class="input" id="saleMin" type="number"/>
+<label>do</label><input class="input" id="saleMax" type="number"/>
+</div>
+</div>
+<button aria-pressed="false" class="toggle-btn" id="saleToggle">Pokaż oferty sprzedaży</button>
+</div>
+</div>
+<!-- Aukcje -->
+<div class="section">
+<div class="section-title section-trigger" data-target="#auctionBody">Aukcje</div>
+<div class="section-body" id="auctionBody" style="display:none;">
+<div id="auctionFields" style="margin-top:8px;">
+<div class="range-inline">
+<label>Cena od</label><input class="input" id="auctionMin" type="number"/>
+<label>do</label><input class="input" id="auctionMax" type="number"/>
+</div>
+</div>
+<button aria-pressed="false" class="toggle-btn" id="auctionToggle">Pokaż oferty aukcji</button>
+</div>
+</div>
+</div>
+
+<!-- Panel „Twoje transakcje” – izolowany -->
+<div id="transactionsPanel" class="side-panel transactions-panel" style="display:none;">
+  <div class="panel-header">
+    <div class="panel-title">Twoje transakcje</div>
+    <div class="panel-actions">
+      <button class="btn-ghost" id="txRefreshBtn">Refresh</button>
+      <button class="panel-close" data-close="transactionsPanel">X</button>
+    </div>
+  </div>
+  <div class="panel-body">
+    <div id="transactionsWrap">
+      Loading...
+    </div>
+  </div>
+</div>
+
+
+<!-- INNE PANELE (prawy panel ogólnego użytku oraz panel punktów widokowych) -->
+<aside class="side-panel" id="appPanel">
+<div class="panel-header">
+<div class="panel-title" id="appPanelTitle">Panel</div>
+<button class="panel-close" data-close="appPanel">X</button>
+</div>
+<div id="appPanelBody" style="margin-top:10px;"></div>
+</aside>
+
+<aside class="side-panel dock-left" id="authPanel" style="left:0;">
+
+  <div class="panel-header">
+    <div class="panel-title">Logowanie / Rejestracja</div>
+    <button class="panel-close" data-close="authPanel">X</button>
+  </div>
+
+  <div class="panel-body" style="display:grid;gap:12px;">
+    <!-- LOGOWANIE -->
+    <section id="preLogin">
+      <div class="card">
+        <div class="card-title"></div>
+        <div id="loginBody" class="card-body" style="display:grid;gap:8px;">
+          <label>E-mail
+            <input class="input" type="email" placeholder="you@example.com">
+          </label>
+          <label>Hasło
+            <input class="input" type="password" placeholder="••••••••">
+          </label>
+          <a class="text-link" href="#" id="forgotPass">Wyślij link do zmiany hasła</a>
+          <button class="btn" id="loginBtn">Zaloguj</button>
+          <button class="btn btn-outline" id="showRegBtn" style="margin-top:8px;">Utwórz konto</button>
+
+        </div>
+      </div>
+
+      <!-- REJESTRACJA (ukryta na start) -->
+      <div id="regSection" style="display:none;">
+        <div class="card">
+          <div class="card-title"></div>
+          <div id="regBody" class="card-body" style="display:grid;gap:8px;">
+            <label>Nazwa użytkownika
+              <input class="input" id="regUsername" type="text" placeholder="np. Mariusz123">
+            </label>
+            <label>E-mail
+              <input class="input" id="regEmail" type="email" placeholder="you@example.com">
+            </label>
+            <label>Hasło
+              <input class="input" id="regPass1" type="password" placeholder="••••••••">
+            </label>
+            <label>Powtórz hasło
+              <input class="input" id="regPass2" type="password" placeholder="••••••••">
+            </label>
+
+            <label>Polecający:
+              <input class="input" id="regReferrer" type="text" placeholder="ID/E-mail polecającego">
+            </label>
+            <div id="regStep1Extras">
+              <label class="checkbox-row" style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+                <input type="checkbox" id="regAcceptTerms">
+                <span>Akceptuję regulamin</span>
+              </label>
+            </div>
+            <button class="btn" id="regBtn">Utwórz konto</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</aside>
+
+<aside class="side-panel" id="viewpointsPanel">
+<div class="panel-header">
+<div class="panel-title">My Viewpoints</div>
+<button class="panel-close" data-close="viewpointsPanel">X</button>
+</div>
+<div class="list" id="vpList"></div>
+<div class="list-item" style="gap:8px">
+<input class="input" id="vpName" placeholder="Nazwa ujęcia"/>
+<button class="btn" id="vpSave" style="width:auto">Zapisz widok</button>
+</div>
+</aside>
+<div id="toast">OK</div>
+
+<aside class="feature-panel" id="featurePanel">
+<div class="feature-header">
+<div class="feature-title" id="featureTitle">Wybrany obiekt</div>
+<button class="feature-close" id="featureClose">X</button>
+</div>
+<div class="props" id="featureProps"></div>
+<div class="feature-actions">
+<button class="btn-ghost" id="fpBuy">Kup</button>
+<button class="btn-ghost" id="fpWatch">Obserwuj</button>
+<button class="btn-ghost" id="fpMessage">Wyślij wiadomość</button>
+<button class="btn-ghost" id="fpSetVP">Set Viewpoint</button>
+</div>
+</aside>
+<script>
+  // Totalny anty-cache i globalny onerror
+  console.log('[HTML] końcówka body załadowana');
+  window.addEventListener('error', e => {
+    console.error('[window.onerror]', e.message, '@', e.filename + ':' + e.lineno + ':' + e.colno);
+  });
+</script>
+
+<script>
+  window.ANALYTICS_BASE = "https://analytics.cryptoearthcoin.com";
+  window.ANALYTICS_TOKEN = "super_tajny_token_123";
+</script>
+
+<!-- 1) tiles-base.js NAJPIERW -->
+<script src="{% static 'tiles-base.js' %}"></script>
+<!-- jeśli trzymasz w podkatalogu: {% static 'js/tiles-base.js' %} -->
+
+<!-- 2) reszta Twoich skryptów (init.js itd.) -->
+<script type="module" src="{% static 'js/init.js' %}"></script>
+<script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/menu.js' %}"></script>
+<script src="{% static 'js/viewpoints.js' %}"></script>
+<script src="{% static 'js/featurePanel.2025.js' %}"></script>
+<script src="{% static 'js/messages.app.js' %}"></script>
+<script src="{% static 'js/offers.app.js' %}"></script>
+<script src="{% static 'js/chat.panel.js' %}"></script>
+<script src="{% static 'js/avatars.app.js' %}"></script>
+</body>
+</html>

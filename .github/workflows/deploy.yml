@@ -1,0 +1,55 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: Deploy to Servers
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Deploy to Server 1
+      env:
+        SSH_PRIVATE_KEY_BASE64: ${{ secrets.DJANGO_BASE64 }}
+        SERVER_IP: ${{ secrets.SERVER_IP_1 }}
+      run: |
+        echo "$SSH_PRIVATE_KEY_BASE64" | base64 -d > django_key
+        chmod 600 django_key
+        
+        echo "Deploying to Server 1 ($SERVER_IP)..."
+        
+        for i in {1..10}; do
+          if ssh -i django_key -o StrictHostKeyChecking=no -o ConnectTimeout=5 ubuntu@$SERVER_IP "echo ready" 2>/dev/null; then
+            break
+          fi
+          echo "Waiting for server... ($i/10)"
+          sleep 10
+        done
+        
+        rsync -avz --delete \
+          -e "ssh -i django_key -o StrictHostKeyChecking=no" \
+          --exclude '.git' \
+          --exclude '.github' \
+          --exclude 'terraform' \
+          --exclude '*.pyc' \
+          --exclude '__pycache__' \
+          --exclude '.env' \
+          --exclude 'staticfiles' \
+          --exclude 'media' \
+          --exclude 'venv' \
+          . ubuntu@$SERVER_IP:/home/ubuntu/django/
+        
+        ssh -i django_key -o StrictHostKeyChecking=no ubuntu@$SERVER_IP << 'ENDSSH'
+        cd /home/ubuntu/django
+        source venv/bin/activate
+        pip install -r requirements.txt
+        python manage.py migrate
+        python manage.py collectstatic --noinput
+        sudo systemctl restart gunicorn
+        ENDSSH
+        
+        echo "✅ Server 1 deployed"

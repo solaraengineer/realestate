@@ -1,0 +1,1280 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SOLARA UI - Horizontal Navbar + Centered Panels
+   Updated: Bigger feature panel, cleaner boxes, draggable support
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --glass: rgba(10, 10, 15, 0.85);
+  --glass-light: rgba(255, 255, 255, 0.05);
+  --glass-hover: rgba(255, 255, 255, 0.1);
+
+  --border: rgba(255, 255, 255, 0.12);
+  --border-hover: rgba(255, 255, 255, 0.22);
+
+  --text: #fff;
+  --text-dim: rgba(255, 255, 255, 0.75);
+  --text-muted: rgba(255, 255, 255, 0.45);
+
+  --accent: #a78bfa;
+  --accent-bg: rgba(167, 139, 250, 0.15);
+
+  --success: #4ade80;
+  --success-bg: rgba(74, 222, 128, 0.15);
+
+  --danger: #f87171;
+  --danger-bg: rgba(248, 113, 113, 0.15);
+
+  --warning: #fbbf24;
+  --warning-bg: rgba(251, 191, 36, 0.15);
+
+  --shadow:
+    0 4px 24px rgba(0, 0, 0, 0.5),
+    0 12px 48px rgba(0, 0, 0, 0.4);
+
+  --shadow-lg:
+    0 8px 40px rgba(0, 0, 0, 0.6),
+    0 24px 80px rgba(0, 0, 0, 0.5);
+
+  --blur: 24px;
+  --r: 16px;
+  --r-sm: 10px;
+  --r-full: 9999px;
+
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration: 0.3s;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #000;
+  color: var(--text);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#cesiumContainer {
+  width: 100%;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOP NAVBAR - HORIZONTAL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.menu-panel {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  background: var(--glass);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  box-shadow: var(--shadow);
+
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+  z-index: 1000;
+}
+
+.menu-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 10px;
+  border-right: 1px solid var(--border);
+  margin-right: 4px;
+}
+
+.menu-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  padding-left: 8px;
+}
+
+#menuToggle {
+  display: none;
+}
+
+#userInfo {
+  padding: 6px 14px !important;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent) !important;
+  background: var(--accent-bg);
+  border-radius: var(--r-full);
+  margin-left: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MENU CONTENT - HORIZONTAL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#menuContent {
+  display: flex !important;
+  align-items: center;
+  gap: 4px;
+}
+
+#menuContent .section {
+  display: contents;
+}
+
+#menuContent .section-body {
+  display: contents;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   NAV BUTTONS - HORIZONTAL PILLS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.btn {
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  border-radius: var(--r-full);
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.btn:hover {
+  background: var(--glass-hover);
+  color: var(--text);
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   POST LOGIN - INLINE WITH NAV
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#postLogin {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  margin: 0 !important;
+  padding-left: 8px;
+  border-left: 1px solid var(--border);
+}
+
+#postLogin[style*="block"] {
+  display: flex !important;
+}
+
+#postLogin .section {
+  display: contents;
+}
+
+#postLogin .section-body {
+  display: contents;
+}
+
+#logoutBtn {
+  background: var(--danger-bg) !important;
+  color: var(--danger) !important;
+}
+
+#logoutBtn:hover {
+  background: rgba(248, 113, 113, 0.25) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ALL PANELS - CENTERED + DRAGGABLE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.side-panel,
+.offers-panel,
+.transactions-panel,
+.feature-panel,
+#authPanel,
+#offersPanel,
+#viewpointsPanel,
+#transactionsPanel,
+#featurePanel,
+#appPanel {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+
+  width: 480px;
+  max-width: 92vw;
+  max-height: 85vh;
+
+  background: var(--glass);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-lg);
+
+  z-index: 1001;
+  overflow: hidden;
+
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, -50%) scale(0.95);
+  transition: opacity var(--duration) var(--ease),
+              visibility var(--duration) var(--ease),
+              box-shadow 0.15s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LEFT-SIDE PANELS (My Houses, Transactions)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#appPanel.panel-left {
+  left: 24px !important;
+  top: 100px !important;
+  transform: scale(0.95) !important;
+  width: 420px;
+}
+
+#appPanel.panel-left[style*="block"],
+#appPanel.panel-left[style*="flex"] {
+  transform: scale(1) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CENTER PANELS (Offers, Auth, etc)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#offersPanel {
+  width: 500px;
+}
+
+.side-panel[style*="block"],
+.side-panel[style*="flex"],
+.offers-panel[style*="block"],
+.transactions-panel[style*="block"],
+.feature-panel[style*="block"],
+#authPanel[style*="block"],
+#offersPanel[style*="block"],
+#viewpointsPanel[style*="block"],
+#transactionsPanel[style*="block"],
+#featurePanel[style*="block"],
+#appPanel[style*="block"] {
+  opacity: 1;
+  visibility: visible;
+  display: flex !important;
+  flex-direction: column;
+}
+
+/* Only center panels that haven't been dragged */
+.side-panel:not([data-dragged])[style*="block"],
+.side-panel:not([data-dragged])[style*="flex"],
+.offers-panel:not([data-dragged])[style*="block"],
+.transactions-panel:not([data-dragged])[style*="block"],
+.feature-panel:not([data-dragged])[style*="block"],
+#authPanel:not([data-dragged])[style*="block"],
+#offersPanel:not([data-dragged])[style*="block"],
+#viewpointsPanel:not([data-dragged])[style*="block"],
+#transactionsPanel:not([data-dragged])[style*="block"],
+#featurePanel:not([data-dragged])[style*="block"],
+#appPanel:not([data-dragged])[style*="block"] {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Dragging state */
+.side-panel.dragging,
+.feature-panel.dragging {
+  box-shadow: var(--shadow-lg), 0 0 0 2px var(--accent);
+  cursor: grabbing;
+  user-select: none;
+  transition: none;
+}
+
+.side-panel.dock-left {
+  left: 50% !important;
+  right: auto !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PANEL HEADER - DRAGGABLE HANDLE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.panel-header,
+.feature-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  cursor: grab;
+  user-select: none;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.panel-header:active,
+.feature-header:active {
+  cursor: grabbing;
+}
+
+/* Drag indicator */
+.panel-header::before,
+.feature-header::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  opacity: 0.6;
+}
+
+.panel-title,
+.feature-title,
+#appPanelTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.panel-close,
+.close-btn,
+.feature-close {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.panel-close:hover,
+.close-btn:hover,
+.feature-close:hover {
+  background: var(--danger-bg);
+  border-color: rgba(248, 113, 113, 0.3);
+  color: var(--danger);
+}
+
+.panel-body,
+#appPanelBody {
+  padding: 22px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FEATURE PANEL - BIGGER & CLEANER
+   Works with existing featurePanel.2025.js class names (.prop, .k, .v, .db-row)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#featurePanel,
+.feature-panel {
+  width: 560px;
+  max-width: 95vw;
+  max-height: 85vh;
+}
+
+/* Props container */
+.props,
+#featureProps {
+  padding: 20px 24px;
+  max-height: 450px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Individual property rows - works with existing .prop class */
+.props .prop,
+#featureProps .prop {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 16px;
+  align-items: baseline;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.props .prop:last-child,
+#featureProps .prop:last-child {
+  border-bottom: none;
+}
+
+/* Key/label styling */
+.props .prop .k,
+#featureProps .prop .k,
+.props .prop > div:first-child,
+#featureProps .prop > div:first-child {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+/* Value styling */
+.props .prop > div:last-child,
+#featureProps .prop > div:last-child {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  word-break: break-word;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DB SECTION - Override the inline styles from JS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#featurePanel #dbProps {
+  background: rgba(167, 139, 250, 0.08) !important;
+  padding: 16px 18px !important;
+  border-radius: 12px !important;
+  margin: 0 0 16px !important;
+  border: 1px solid rgba(167, 139, 250, 0.15);
+}
+
+#featurePanel #dbProps .db-head {
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent) !important;
+  opacity: 1 !important;
+  margin-bottom: 14px !important;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(167, 139, 250, 0.15);
+}
+
+#featurePanel #dbProps .db-row {
+  display: grid !important;
+  grid-template-columns: 120px 1fr !important;
+  column-gap: 16px !important;
+  row-gap: 0 !important;
+  align-items: baseline !important;
+  padding: 10px 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+#featurePanel #dbProps .db-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+#featurePanel #dbProps .db-row .k {
+  font-size: 13px !important;
+  font-weight: 500;
+  color: var(--text-muted) !important;
+  opacity: 1 !important;
+}
+
+#featurePanel #dbProps .db-row .v {
+  font-size: 15px !important;
+  font-weight: 500;
+  color: var(--text) !important;
+  word-break: break-word;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   OWNERS LIST - Cleaner styling
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.owners-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.owner-row {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  transition: all 0.15s ease;
+}
+
+.owner-row:hover {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: var(--border-hover);
+}
+
+.owner-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.owner-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.owner-shares {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-bg);
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+}
+
+.owner-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.owner-listing-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.owner-listing {
+  font-size: 12px;
+  color: var(--success);
+  background: var(--success-bg);
+  padding: 4px 10px;
+  border-radius: var(--r-full);
+  font-weight: 500;
+}
+
+/* Owner action buttons */
+.owner-actions .btn {
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.owner-actions .btn:hover {
+  background: var(--glass-hover);
+  border-color: var(--border-hover);
+  color: var(--text);
+}
+
+/* Buy button - accent */
+.owner-actions .fp-owner-buy {
+  background: var(--accent-bg) !important;
+  border-color: rgba(167, 139, 250, 0.3) !important;
+  color: var(--accent) !important;
+}
+
+.owner-actions .fp-owner-buy:hover {
+  background: rgba(167, 139, 250, 0.25) !important;
+}
+
+/* Sell button - success */
+.owner-actions .fp-owner-sell {
+  background: var(--success-bg) !important;
+  border-color: rgba(74, 222, 128, 0.3) !important;
+  color: var(--success) !important;
+}
+
+.owner-actions .fp-owner-sell:hover {
+  background: rgba(74, 222, 128, 0.25) !important;
+}
+
+/* End listing - danger */
+.owner-actions .fp-owner-end {
+  background: var(--danger-bg) !important;
+  border-color: rgba(248, 113, 113, 0.3) !important;
+  color: var(--danger) !important;
+}
+
+.owner-actions .fp-owner-end:hover {
+  background: rgba(248, 113, 113, 0.25) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HOUSE ACTIONS (Zajmij, Przejęcie, etc)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#houseActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+#houseActions .btn {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+#occupyBtn {
+  background: var(--success-bg) !important;
+  border: 1px solid rgba(74, 222, 128, 0.3) !important;
+  color: var(--success) !important;
+}
+
+#occupyBtn:hover {
+  background: rgba(74, 222, 128, 0.25) !important;
+}
+
+#takeoverBtn {
+  background: var(--danger-bg) !important;
+  border: 1px solid rgba(248, 113, 113, 0.3) !important;
+  color: var(--danger) !important;
+}
+
+#takeoverBtn:hover {
+  background: rgba(248, 113, 113, 0.25) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FEATURE ACTIONS (Bottom buttons)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.feature-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 18px 24px;
+  border-top: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.feature-actions .btn-ghost {
+  padding: 14px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+/* Primary action button */
+.feature-actions .btn-primary,
+#fpBuy {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #000 !important;
+  font-weight: 600;
+}
+
+.feature-actions .btn-primary:hover,
+#fpBuy:hover {
+  background: #c4b5fd !important;
+  border-color: #c4b5fd !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECTIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.section {
+  margin-bottom: 18px;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.section-body {
+  padding: 16px;
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIEWPOINTS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#vpList {
+  padding: 0 0 14px 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  margin-bottom: 10px;
+  gap: 12px;
+  transition: all 0.15s ease;
+}
+
+.list-item:hover {
+  background: var(--glass-hover);
+  border-color: var(--border-hover);
+}
+
+.list-item .row {
+  display: flex;
+  gap: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AUTH PANEL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.card {
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+
+.card-title {
+  padding: 14px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-body {
+  padding: 18px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INPUTS - BIGGER & CLEANER
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.input {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.input:hover {
+  border-color: var(--border-hover);
+}
+
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+label .input {
+  margin-top: 8px;
+}
+
+.range-inline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.range-inline label {
+  margin: 0;
+  font-size: 12px;
+}
+
+.range-inline .input {
+  width: 100px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.checkbox-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.text-link {
+  color: var(--accent);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BUTTONS SECONDARY
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.toggle-btn {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--accent-bg);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  border-radius: var(--r-sm);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toggle-btn:hover {
+  background: rgba(167, 139, 250, 0.22);
+}
+
+.btn-ghost {
+  padding: 10px 16px;
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-ghost:hover {
+  background: var(--glass-hover);
+  border-color: var(--border-hover);
+  color: var(--text);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.btn-outline:hover {
+  background: var(--glass-light);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HOUSE/TRANSACTION ITEMS - BIGGER & CLEANER
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.house-item,
+.transaction-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 22px !important;
+  background: var(--glass-light) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  gap: 16px;
+}
+
+.house-item:hover,
+.transaction-item:hover {
+  background: var(--glass-hover) !important;
+  border-color: var(--border-hover) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Card left side */
+.card-left {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Card right side */
+.card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* House name */
+.house-name,
+.tx-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+/* Shares info */
+.house-shares {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* Transaction details */
+.tx-counterparty {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.tx-date {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge.for-sale {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.status-badge.bought {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+.status-badge.sold {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+/* Price display */
+.price {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Loading text animation */
+.loading-text {
+  color: var(--text-muted);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Form label */
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PROFILE FORM
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profile-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.profile-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-form .form-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-form .input {
+  margin-top: 0;
+}
+
+.profile-form .input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-save {
+  padding: 14px 20px;
+  background: var(--accent);
+  border: none;
+  border-radius: 10px;
+  color: #000;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: 8px;
+}
+
+.btn-save:hover {
+  background: #c4b5fd;
+}
+
+.btn-save:active {
+  transform: scale(0.98);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  padding: 14px 28px;
+  background: var(--glass);
+  backdrop-filter: blur(var(--blur));
+  -webkit-backdrop-filter: blur(var(--blur));
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 9999;
+  display: none;
+  opacity: 0;
+}
+
+#toast[style*="block"] {
+  animation: toastUp 0.3s var(--ease) forwards;
+}
+
+@keyframes toastUp {
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar {
+  width: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+  .menu-panel {
+    max-width: calc(100% - 24px);
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .menu-panel {
+    top: 12px;
+    padding: 6px 10px;
+  }
+
+  .btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .side-panel,
+  .feature-panel,
+  #authPanel,
+  #offersPanel,
+  #viewpointsPanel,
+  #transactionsPanel,
+  #featurePanel,
+  #appPanel {
+    width: calc(100% - 24px);
+    max-height: 75vh;
+  }
+
+  #featurePanel,
+  .feature-panel {
+    width: calc(100% - 24px);
+  }
+
+  .prop-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CESIUM CLEANUP
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.cesium-viewer-bottom,
+.cesium-widget-credits,
+.cesium-viewer-toolbar {
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HOVER OVERLAY (on map)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.backdrop {
+  background: var(--glass) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--text) !important;
+  box-shadow: var(--shadow);
+  max-width: 280px;
+  word-break: break-word;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOADING STATES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.loading-text {
+  animation: pulse 1.5s ease-in-out infinite;
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITY CLASSES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.text-accent { color: var(--accent); }
+.text-success { color: var(--success); }
+.text-danger { color: var(--danger); }
+.text-warning { color: var(--warning); }
+.text-muted { color: var(--text-muted); }
+
+.font-mono { font-family: 'SF Mono', Monaco, 'Courier New', monospace; }
+.font-bold { font-weight: 700; }
+.font-medium { font-weight: 500; }
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

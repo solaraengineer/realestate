@@ -1,0 +1,136 @@
+/* === Moje domy — SCOPED to data-panel="homes" === */
+
+/* Panel container: 35% width, 60% height, dock-left alignment */
+#appPanel[data-panel="homes"] {
+  position: fixed !important;
+  width: 35vw !important;
+  max-width: 35vw !important;
+  height: 60vh !important;
+  max-height: 60vh !important;
+  overflow: hidden !important;      /* jak msgx-medium */
+  display: flex;
+  flex-direction: column;
+  margin: 0 !important;
+  /* top/left are managed by JS to sit next to the left menu */
+}
+
+/* Body scroll only inside the panel body */
+#appPanel[data-panel="homes"] #appPanelBody {
+  height: 60vh !important;
+  overflow-y: auto !important;
+}
+
+/* === Tabela: scoped === */
+#appPanel[data-panel="homes"] #homesWrap { max-width: 100%; overflow: auto; }
+#appPanel[data-panel="homes"] #homesTable { width:100%; border-collapse: collapse; table-layout: fixed; }
+#appPanel[data-panel="homes"] #homesTable th, 
+#appPanel[data-panel="homes"] #homesTable td { overflow: hidden; text-overflow: ellipsis; }
+
+/* 3 kolumny: Nazwa / Adres / Akcje */
+#appPanel[data-panel="homes"] #homesTable th:nth-child(1) { width: 35%; }  /* Nazwa  */
+#appPanel[data-panel="homes"] #homesTable th:nth-child(2) { width: auto; } /* Adres  */
+#appPanel[data-panel="homes"] #homesTable th:nth-child(3) { width: 1%; }   /* Akcje  */
+
+#appPanel[data-panel="homes"] #homesTable td.col-actions { white-space: nowrap; }
+
+/* Przyciski w Akcjach – zwarte */
+#appPanel[data-panel="homes"] #homesTable .btn { display:inline-block; margin-right:8px; }
+#appPanel[data-panel="homes"] #homesTable .btn:last-child { margin-right:0; }
+
+/* Akcje w wierszu — w poziomie */
+#appPanel[data-panel="homes"] #homesTable td.col-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+#appPanel[data-panel="homes"] #homesTable td.col-actions .btn {
+  display: inline-flex;
+  width: auto;
+  white-space: nowrap;
+  padding: 6px 10px;
+}
+
+/* Mobile fallback — panel zachowuje 35vw, ale to i tak <= szerokości ekranu na małych viewporach */
+@media (max-width: 900px) {
+  #appPanel[data-panel="homes"] {
+    width: 90vw !important;
+    max-width: 90vw !important;
+    height: 60vh !important;
+    max-height: 60vh !important;
+  }
+}
+/* Header w My Homes: tytuł po lewej, Close po prawej */
+#appPanel[data-panel="homes"] .panel-header {
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  align-items: center !important;
+}
+#appPanel[data-panel="homes"] .panel-header .panel-title { margin: 0 !important; }
+#appPanel[data-panel="homes"] .panel-header .panel-close { justify-self: end !important; }
+
+/* Panel „homes” jako kolumna: header + body */
+#appPanel[data-panel="homes"] {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Body wypełnia pozostałą wysokość (zamiast sztywnego 60vh) */
+#appPanel[data-panel="homes"] #appPanelBody {
+  height: auto !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
+/* (zostaw) nagłówek „grid 1fr | auto”, żeby Close był po prawej */
+#appPanel[data-panel="homes"] .panel-header {
+  display: grid !important;
+  grid-template-columns: 1fr auto !important;
+  align-items: center !important;
+}
+#appPanel[data-panel="homes"] .panel-header .panel-title { margin: 0 !important; }
+#appPanel[data-panel="homes"] .panel-header .panel-close { justify-self: end !important; }
+
+
+/* Akcje w „My Real Estate” – rząd przycisków w jednej linii */
+#appPanel[data-panel="homes"] #homesTable td.actions-cell {
+  display: flex;
+  flex-wrap: wrap;           /* zawijaj do kolejnego rzędu, jeśli zabraknie miejsca */
+  align-items: center;
+  gap: 8px;
+}
+
+/* SZTYWNE szerokości przycisków – przebijamy globalne .btn { width:100% } */
+#appPanel[data-panel="homes"] #homesTable td.actions-cell .btn {
+  width: 120px !important;   /* domyślnie 120px */
+  flex: 0 0 120px !important;
+  white-space: nowrap;
+  margin: 0 !important;      /* globalnie masz margin-top:8px na .btn – wyłączamy */
+  padding: 6px 10px;
+}
+
+/* wyjątki – krótsze przyciski */
+#appPanel[data-panel="homes"] #homesTable td.actions-cell .btn-goto { 
+  width: 10px !important; 
+  flex-basis: 10px !important; 
+}
+#appPanel[data-panel="homes"] #homesTable td.actions-cell .btn-chat { 
+  width: 110px !important; 
+  flex-basis: 110px !important; 
+}
+#appPanel[data-panel="homes"] #homesTable td.actions-cell .btn-accept { 
+  width: 130px !important; 
+  flex-basis: 130px !important; 
+}
+
+/* blok z ofertą też w jednej linii */
+#appPanel[data-panel="homes"] #homesTable .deal-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+#appPanel[data-panel="homes"] #homesTable .deal-row .input {
+  width: 110px;
+}
