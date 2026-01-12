@@ -49,11 +49,7 @@
     padding: 8px;
 }
 
-<<<<<<< HEAD
-.selector-chosen-title label {
-=======
 .aligned .selector-chosen-title label {
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
     color: var(--header-link-color);
     width: 100%;
 }
@@ -64,11 +60,7 @@
     padding: 8px;
 }
 
-<<<<<<< HEAD
-.selector-available-title label {
-=======
 .aligned .selector-available-title label {
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
     width: 100%;
 }
 

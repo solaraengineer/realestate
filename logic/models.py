@@ -10,23 +10,16 @@ class User(AbstractUser):
     password = models.CharField(max_length=255, null=False, blank=False)
     referral_email = models.CharField(max_length=255, null=True, blank=True)
     address = models.CharField(max_length=255, null=True, blank=True)
-<<<<<<< HEAD
-=======
     city = models.CharField(max_length=100, null=True, blank=True)
     postal_code = models.CharField(max_length=20, null=True, blank=True)
     country = models.CharField(max_length=100, null=True, blank=True)
     company_name = models.CharField(max_length=255, null=True, blank=True)
     vat_number = models.CharField(max_length=50, null=True, blank=True)
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
     code = models.CharField(max_length=6, null=True, blank=True)
     vat = models.CharField(max_length=15, null=True, blank=True)
     stripe_account_id = models.CharField(max_length=255, null=True, blank=True)
     stripe_kyc = models.BooleanField(default=False)
     user_range = models.IntegerField(default=1, db_index=True)
-<<<<<<< HEAD
-
-
-=======
     two_factor_enabled = models.BooleanField(default=False)
 
 
@@ -36,7 +29,6 @@ HOUSE_STATUS = [
     ('sold', 'sold'),
     ('fractional', 'fractional'),
 ]
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
 
 
 class House(models.Model):
@@ -51,12 +43,9 @@ class House(models.Model):
     h3_id = models.TextField(null=True, blank=True)
     h3_res = models.SmallIntegerField(null=True, blank=True)
     name = models.TextField(null=True, blank=True)
-<<<<<<< HEAD
-
-=======
     status = models.CharField(max_length=20, choices=HOUSE_STATUS, default='free')
     total_shares = models.IntegerField(default=1)
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
+
 
 LISTING_STATUS = [
     ('active', 'active'),
@@ -77,17 +66,11 @@ class Listing(models.Model):
         related_name='listings'
     )
     price = models.DecimalField(max_digits=12, decimal_places=2)
-<<<<<<< HEAD
-    share_count = models.IntegerField(default=1)
-    left_shares = models.IntegerField()
-    status = models.CharField(max_length=20, choices=LISTING_STATUS, default='active')
-=======
     currency = models.CharField(max_length=10, default='PLN')
     share_count = models.IntegerField(default=1)
     left_shares = models.IntegerField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=LISTING_STATUS, default='active')
     valid_from = models.DateTimeField(auto_now_add=True)
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
@@ -103,13 +86,8 @@ class HouseOwnership(models.Model):
         on_delete=models.CASCADE,
         related_name='house_ownerships',
     )
-<<<<<<< HEAD
-    shares = models.IntegerField()
-    bought_for = models.IntegerField()
-=======
     shares = models.IntegerField(default=0)
     bought_for = models.IntegerField(null=True, blank=True)
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
 
     class Meta:
         unique_together = [('house', 'user')]
@@ -136,39 +114,22 @@ FRIEND_STATUS = [
     ('blocked', 'blocked'),
 ]
 
-<<<<<<< HEAD
-class Friend(models.Model):  # singular
-=======
 
 class Friend(models.Model):
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='friend_requests_sent',
-<<<<<<< HEAD
-        blank=True,
-        default=''
-=======
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
     )
     friend = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='friend_requests_received',
-<<<<<<< HEAD
-        blank=True,
-        default=''
-=======
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
     )
     status = models.CharField(max_length=20, choices=FRIEND_STATUS, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-<<<<<<< HEAD
-        unique_together = [('user', 'friend')]
-=======
         unique_together = [('user', 'friend')]
 
 
@@ -186,7 +147,6 @@ class Viewpoint(models.Model):
     heading = models.FloatField(default=0)
     pitch = models.FloatField(default=-0.5)
     roll = models.FloatField(default=0)
-    # Cartesian3 position for exact camera restore
     pos_x = models.FloatField(null=True, blank=True)
     pos_y = models.FloatField(null=True, blank=True)
     pos_z = models.FloatField(null=True, blank=True)
@@ -264,4 +224,3 @@ class Transaction(models.Model):
 
     class Meta:
         ordering = ['-created_at']
->>>>>>> 7ee9b21 (Inital at 01.12.2026)

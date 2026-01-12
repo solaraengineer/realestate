@@ -1,10 +1,6 @@
 /**
-<<<<<<< HEAD
- * viewpoints.js - Viewpoints panel with Redis backend and smooth fly-to animation
-=======
  * viewpoints.js - Viewpoints/Observations panel with database backend and smooth fly-to animation
  * Supports saving observations linked to specific houses
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
  */
 
 (function() {
@@ -21,12 +17,6 @@
     return match ? match[1] : '';
   }
 
-<<<<<<< HEAD
-  async function jget(url) {
-    const r = await fetch(url, { credentials: 'same-origin' });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data?.error || 'HTTP error');
-=======
   const ERROR_MESSAGES = {
     'AUTH_REQUIRED': 'Zaloguj się, aby zapisywać viewpointy',
     'INVALID_JSON': 'Nieprawidłowe dane',
@@ -45,7 +35,6 @@
       err.code = data?.error;
       throw err;
     }
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
     return data;
   }
 
@@ -60,15 +49,11 @@
       body: JSON.stringify(body),
     });
     const data = await r.json();
-<<<<<<< HEAD
-    if (!r.ok) throw new Error(data?.error || 'HTTP error');
-=======
     if (!r.ok) {
       const err = new Error(getErrorMessage(data?.error));
       err.code = data?.error;
       throw err;
     }
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
     return data;
   }
 
@@ -161,11 +146,7 @@
 
           item.innerHTML = `
             <div style="flex:1;min-width:0;">
-<<<<<<< HEAD
-              <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${vp.name || 'Ujęcie ' + (i + 1)}</div>
-=======
               <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${vp.name || 'Ujecie ' + (i + 1)}</div>
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
               <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${coordsStr}</div>
             </div>
             <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -217,15 +198,11 @@
 
     } catch (err) {
       console.error('[Viewpoints] Load error:', err);
-<<<<<<< HEAD
-      vpList.innerHTML = '<div class="list-item" style="color:#f87171;">Błąd ładowania</div>';
-=======
       if (err.code === 'AUTH_REQUIRED') {
         vpList.innerHTML = '<div class="list-item" style="color:var(--text-muted);">Zaloguj się, aby zobaczyć swoje viewpointy.</div>';
       } else {
         vpList.innerHTML = '<div class="list-item" style="color:#f87171;">Błąd ładowania</div>';
       }
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
     }
 
     // Save button handler (re-attach on each render)
@@ -263,11 +240,7 @@
       } catch (err) {
         console.error('[Viewpoints] Save error:', err);
         if (typeof window.toast === 'function') {
-<<<<<<< HEAD
-          window.toast('Błąd zapisywania');
-=======
           window.toast(err.message || 'Błąd zapisywania');
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
         }
       }
     };

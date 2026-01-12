@@ -6,14 +6,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie, csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from django_ratelimit.decorators import ratelimit
-import json
-from django.http import JsonResponse
 import html
 import re
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_POST, require_GET
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from .forms import LoginForm, RegisterForm
@@ -45,12 +40,8 @@ def api_login(request):
             u = User.objects.get(email__iexact=email)
             user = authenticate(request, username=u.username, password=password)
         except User.DoesNotExist:
-<<<<<<< HEAD
-            pass
-
-=======
             return JsonResponse({"ok": False, "error": "INVALID_CREDENTIALS"}, status=400)
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
+
     if not user:
         return JsonResponse({"ok": False, "error": "INVALID_CREDENTIALS"}, status=401)
 
@@ -71,11 +62,7 @@ def api_login(request):
 
 @ratelimit(key='ip', rate='5/m', block=True)
 @require_POST
-<<<<<<< HEAD
-@csrf_protect
-=======
 @csrf_exempt
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
 def api_register(request):
     try:
         data = json.loads(request.body)
@@ -139,9 +126,6 @@ def api_csrf(request):
     return JsonResponse({"ok": True})
 
 
-User = get_user_model()
-
-
 @require_GET
 @login_required
 def api_profile(request):
@@ -165,7 +149,6 @@ def api_profile(request):
     })
 
 
-
 def super_clean(val, max_len=255):
     if val is None:
         return ''
@@ -173,6 +156,7 @@ def super_clean(val, max_len=255):
     val = html.escape(val)
     val = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', val)
     return val[:max_len]
+
 
 @csrf_protect
 @login_required
@@ -243,12 +227,6 @@ def api_profile_update(request):
         if 'two_factor_enabled' in data:
             user.two_factor_enabled = bool(data['two_factor_enabled'])
 
-<<<<<<< HEAD
-        if 'new_password' in data:
-            if not user.check_password(data['current_password']):
-                return JsonResponse({"ok": False, "error": "WRONG_PASSWORD"}, status=400)
-            validate_password(data['new_password'])
-=======
         if 'new_password' in data and data['new_password']:
             if not data.get('current_password'):
                 return JsonResponse({"ok": False, "error": "CURRENT_PASSWORD_REQUIRED"}, status=400)
@@ -258,7 +236,6 @@ def api_profile_update(request):
                 validate_password(data['new_password'], user=user)
             except ValidationError as e:
                 return JsonResponse({"ok": False, "error": "WEAK_PASSWORD", "messages": list(e.messages)}, status=400)
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
             user.set_password(data['new_password'])
 
         user.save()
@@ -280,5 +257,3 @@ def api_profile_update(request):
                 "two_factor_enabled": getattr(user, 'two_factor_enabled', False),
             }
         })
-
-

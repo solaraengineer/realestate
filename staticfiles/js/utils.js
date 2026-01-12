@@ -1,6 +1,4 @@
 /**
-<<<<<<< HEAD
-=======
  * Get a cookie value by name.
  * Used for CSRF token retrieval.
  */
@@ -15,7 +13,6 @@ function getCookie(name) {
 window.getCookie = getCookie;
 
 /**
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
  * Inicjalizacja akordeonu (rozwijane sekcje) wewnątrz podanego kontenera.
  * Używane m.in. dla paneli logowania/rejestracji.
  */
