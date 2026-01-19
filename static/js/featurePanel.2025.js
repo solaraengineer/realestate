@@ -77,8 +77,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
 
     if (btnClose) btnClose.addEventListener('click', closePanel);
 
-<<<<<<< HEAD
-=======
     // Wire up Set Viewpoint button
     const btnSetVP = document.getElementById('fpSetVP');
     if (btnSetVP) {
@@ -185,7 +183,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
       });
     }
 
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
     const overlay = document.createElement('div');
     overlay.className = 'backdrop';
     Object.assign(overlay.style, {
@@ -733,37 +730,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
               if (msgBtnOwner) {
                 ev.preventDefault();
                 const sellerId = msgBtnOwner.dataset.sellerId;
-<<<<<<< HEAD
-                const id_fme   = (d.id_fme ?? id);
-                if (!sellerId || !id_fme) return;
-                try {
-                  const resp = await fetch('/api/messages/start/', {
-                    method: 'POST',
-                    headers: {
-                      'X-CSRFToken': getCookie('csrftoken'),
-                      'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    credentials: 'same-origin',
-                    body: new URLSearchParams({
-                      id_fme: id_fme,
-                      seller_id: String(sellerId),
-                    })
-                  });
-                  const j = await resp.json().catch(() => ({}));
-                  if (!resp.ok || !j.ok) throw new Error(j.error || 'Message start failed');
-
-                  window.__openConvId = j.conversation_id;
-                  window.__lastPickedIdFME = id_fme;
-
-                  const app = document.getElementById('appPanel');
-                  if (app) app.setAttribute('data-panel', 'messages');
-                  if (typeof window.renderMessagesPanel === 'function') {
-                    window.renderMessagesPanel();
-                    if (typeof closePanel === 'function') closePanel();
-                  }
-                } catch (e) {
-                  alert(e.message || 'Błąd otwierania wiadomości');
-=======
                 if (!sellerId) return;
 
                 // Use the ChatPanel to open a conversation with the seller
@@ -791,7 +757,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                     chatPanel.style.display = 'block';
                     if (typeof closePanel === 'function') closePanel();
                   }
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
                 }
                 return;
               }
@@ -802,13 +767,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
               msgBtn2.dataset.msgBound = '1';
               msgBtn2.addEventListener('click', (e) => {
                 e.preventDefault();
-<<<<<<< HEAD
-                const app = document.getElementById('appPanel');
-                if (app) app.setAttribute('data-panel', 'messages');
-                if (typeof window.renderMessagesPanel === 'function') {
-                  window.renderMessagesPanel();
-                  if (typeof closePanel === 'function') closePanel();
-=======
                 if (typeof window.ChatPanel !== 'undefined' && window.ChatPanel.open) {
                   if (typeof closePanel === 'function') closePanel();
                   window.ChatPanel.open();
@@ -818,7 +776,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                     chatPanel.style.display = 'block';
                     if (typeof closePanel === 'function') closePanel();
                   }
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
                 }
               });
             }

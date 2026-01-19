@@ -29,10 +29,7 @@
   // Other panels
   const offersPanel = document.getElementById('offersPanel');
   const viewpointsPanel = document.getElementById('viewpointsPanel');
-<<<<<<< HEAD
-=======
   const observationsPanel = document.getElementById('observationsPanel');
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
   const transactionsPanel = document.getElementById('transactionsPanel');
   const featurePanel = document.getElementById('featurePanel');
   const appPanel = document.getElementById('appPanel');
@@ -69,26 +66,17 @@
   // PANEL MANAGEMENT
   // ═══════════════════════════════════════════════════════════════════════════
 
-<<<<<<< HEAD
-=======
   const chatPanel = document.getElementById('chatPanel');
 
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
   const allPanels = [
     authPanel,
     offersPanel,
     viewpointsPanel,
-<<<<<<< HEAD
-    transactionsPanel,
-    featurePanel,
-    appPanel
-=======
     observationsPanel,
     transactionsPanel,
     featurePanel,
     appPanel,
     chatPanel
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
   ];
 
   function hideAllPanels() {
@@ -436,19 +424,6 @@
           break;
 
         case 'watchlist':
-<<<<<<< HEAD
-          showPanel(appPanel, 'left');
-          document.getElementById('appPanelTitle').textContent = 'Moje obserwacje';
-          document.getElementById('appPanelBody').innerHTML = '<p style="color:var(--text-muted)">Obserwowane nieruchomości pojawią się tutaj.</p>';
-          break;
-
-        case 'messages':
-          showPanel(appPanel, 'left');
-          document.getElementById('appPanelTitle').textContent = 'Wiadomości';
-          document.getElementById('appPanelBody').innerHTML = '<p class="loading-text">Ładowanie...</p>';
-          if (typeof window.renderMessagesPanel === 'function') {
-            window.renderMessagesPanel();
-=======
           showPanel(observationsPanel);
           if (typeof window.renderObservations === 'function') {
             window.renderObservations();
@@ -463,7 +438,6 @@
           } else {
             const chatPanel = document.getElementById('chatPanel');
             if (chatPanel) chatPanel.style.display = 'block';
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
           }
           break;
 
@@ -532,8 +506,6 @@
                 </label>
               </div>
 
-<<<<<<< HEAD
-=======
               <div class="profile-section">
                 <div class="profile-section-title">Stripe - Platnosci</div>
                 <div id="stripeStatusSection" style="padding:8px 0;">
@@ -542,18 +514,13 @@
                 <button class="btn" id="stripeOnboardBtn" style="background:#635bff;width:100%;margin-top:8px;">Konfiguruj Stripe</button>
               </div>
 
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
               <button class="btn-save" id="saveProfileBtn">Zapisz zmiany</button>
             </div>
           `;
           loadProfileData();
-<<<<<<< HEAD
-          document.getElementById('saveProfileBtn')?.addEventListener('click', saveProfile);
-=======
           loadStripeStatus();
           document.getElementById('saveProfileBtn')?.addEventListener('click', saveProfile);
           document.getElementById('stripeOnboardBtn')?.addEventListener('click', startStripeOnboarding);
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
           break;
       }
     });
@@ -669,16 +636,6 @@
 
   async function loadMyHouses() {
     const body = document.getElementById('appPanelBody');
-<<<<<<< HEAD
-    if (!body) return;
-
-    try {
-      const res = await fetch('/api/my/houses/', { credentials: 'same-origin' });
-      const data = await res.json();
-
-      if (!data.ok) {
-        body.innerHTML = '<p style="color:var(--danger);">Błąd ładowania</p>';
-=======
     console.log('[MyHouses] Starting, body:', body);
     if (!body) {
       console.error('[MyHouses] appPanelBody not found!');
@@ -706,7 +663,6 @@
 
       if (!data.ok) {
         body.innerHTML = `<p style="color:var(--danger);">Błąd: ${data.error || 'nieznany'}</p>`;
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
         return;
       }
 
@@ -762,13 +718,8 @@
       });
 
     } catch (e) {
-<<<<<<< HEAD
-      console.error('[MyHouses]', e);
-      body.innerHTML = '<p style="color:var(--danger);">Błąd połączenia</p>';
-=======
       console.error('[MyHouses] Error:', e);
       body.innerHTML = `<p style="color:var(--danger);">Błąd: ${e.message}</p>`;
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
     }
   }
 
@@ -958,10 +909,6 @@
     }
   }
 
-<<<<<<< HEAD
-})();
-async function buyListing(listingId) {
-=======
   // ═══════════════════════════════════════════════════════════════════════════
   // STRIPE FUNCTIONS
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1096,7 +1043,6 @@ async function buyListing(listingId) {
         'AUTH_REQUIRED': 'Musisz byc zalogowany.',
     };
 
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
     try {
         const res = await fetch('/api/checkout/', {
             method: 'POST',
@@ -1111,12 +1057,8 @@ async function buyListing(listingId) {
         const data = await res.json();
 
         if (!data.ok) {
-<<<<<<< HEAD
-            toast(data.error || 'Błąd płatności');
-=======
             const errorMsg = ERROR_MESSAGES[data.error] || data.message || data.error || 'Blad platnosci';
             toast(errorMsg);
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
             return;
         }
 
@@ -1125,11 +1067,7 @@ async function buyListing(listingId) {
 
     } catch (e) {
         console.error('[Checkout]', e);
-<<<<<<< HEAD
-        toast('Błąd połączenia');
-=======
         toast('Blad polaczenia');
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
     }
 }
 

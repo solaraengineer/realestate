@@ -2,11 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-<<<<<<< HEAD
-      <module fileurl="file://$PROJECT_DIR$/.idea/realestate.iml" filepath="$PROJECT_DIR$/.idea/realestate.iml" />
-=======
       <module fileurl="file://$PROJECT_DIR$/.idea/testingenv.iml" filepath="$PROJECT_DIR$/.idea/testingenv.iml" />
->>>>>>> 7ee9b21 (Inital at 01.12.2026)
     </modules>
   </component>
 </project>
