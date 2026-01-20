@@ -204,7 +204,6 @@ def api_checkout(request):
     if listing.status != 'active':
         return JsonResponse({'ok': False, 'error': 'LISTING_NOT_ACTIVE'}, status=400)
 
-    # Check remaining shares
     remaining = listing.left_shares if listing.left_shares is not None else listing.share_count
     if remaining <= 0:
         return JsonResponse({'ok': False, 'error': 'NO_SHARES_LEFT'}, status=400)

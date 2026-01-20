@@ -186,7 +186,6 @@ TRANSACTION_STATUS = [
 
 
 class Transaction(models.Model):
-    """Track payments with idempotency to prevent duplicate processing."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     stripe_session_id = models.CharField(max_length=255, unique=True, db_index=True)
     stripe_payment_intent = models.CharField(max_length=255, null=True, blank=True)
