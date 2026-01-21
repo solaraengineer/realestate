@@ -4,8 +4,7 @@ channels>=4.0.0
 channels-redis>=4.2.0
 
 # Database
-psycopg>=3.3.0
-psycopg-pool>=3.3.0
+psycopg2-binary>=2.9.0
 
 # Redis
 redis>=5.0.0
@@ -34,5 +33,6 @@ Pillow>=12.0.0
 
 # WSGI server
 gunicorn>=22.0.0
+
 # Celery
-Celery
+celery>=5.3.0

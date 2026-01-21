@@ -3,6 +3,7 @@ Django settings for settings project.
 """
 
 from pathlib import Path
+import base64
 import os
 
 from dotenv import load_dotenv
@@ -153,11 +154,8 @@ JWT_ISSUER = "cryptoearthcoin.com"
 
 # RSA-3072 Private Key (keep secret!)
 # Generate with: openssl genrsa -out private.pem 3072
-JWT_PRIVATE_KEY = os.getenv(JWT_PRIVATE_KEY)
-
-# RSA-3072 Public Key
-# Generate with: openssl rsa -in private.pem -pubout -out public.pem
-JWT_PUBLIC_KEY = os.getenv(JWT_PUBLIC_KEY)
+JWT_PRIVATE_KEY = base64.b64decode(os.getenv('JWT_PRIVATE_KEY')).decode('utf-8')
+JWT_PUBLIC_KEY = base64.b64decode(os.getenv('JWT_PUBLIC_KEY')).decode('utf-8')
 
 print(">>> DJANGO LOADED FROM:", BASE_DIR)
 
