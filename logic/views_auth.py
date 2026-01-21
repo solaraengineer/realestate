@@ -12,6 +12,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from .forms import LoginForm, RegisterForm
+from .views_jwt import generate_jwt_token
+from .views_emails import send_welcome_email
 
 User = get_user_model()
 
@@ -50,8 +52,12 @@ def api_login(request):
 
     auth_login(request, user)
 
+    # Generate JWT token
+    token = generate_jwt_token(user)
+
     return JsonResponse({
         "ok": True,
+        "token": token,
         "user": {
             "id": str(user.id),
             "username": user.username,
@@ -88,8 +94,15 @@ def api_register(request):
     user = User.objects.create_user(username=username, email=email, password=password)
     auth_login(request, user)
 
+    # Generate JWT token
+    token = generate_jwt_token(user)
+
+    # Send welcome email asynchronously via Celery
+    send_welcome_email.delay(user.id)
+
     return JsonResponse({
         "ok": True,
+        "token": token,
         "user": {
             "id": str(user.id),
             "username": user.username,

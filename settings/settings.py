@@ -121,5 +121,43 @@ CSRF_TRUSTED_ORIGINS = ['https://cryptoearthcoin.com', 'https://www.cryptoearthc
 SECURE_SSL_REDIRECT = False
 USE_X_FORWARDED_HOST = True
 
+# ═══════════════════════════════════════════════════════════════════════════
+# Celery Configuration
+# ═══════════════════════════════════════════════════════════════════════════
+CELERY_BROKER_URL = f"redis://{os.getenv('REDIS_HOST', 'redis')}:{os.getenv('REDIS_PORT', 6379)}/1"
+CELERY_RESULT_BACKEND = f"redis://{os.getenv('REDIS_HOST', 'redis')}:{os.getenv('REDIS_PORT', 6379)}/1"
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Email Configuration (Google SMTP)
+# ═══════════════════════════════════════════════════════════════════════════
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('GOOGLE_SMTP_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('GOOGLE_SMTP_PASSWORD', '')  # App password
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@cryptoearthcoin.com')
+EMAIL_SUBJECT_PREFIX = '[CryptoEarthCoin] '
+
+# ═══════════════════════════════════════════════════════════════════════════
+# JWT Configuration (RSA-3072 with RS256)
+# ═══════════════════════════════════════════════════════════════════════════
+JWT_ALGORITHM = "RS256"  # RSA with SHA-256
+JWT_ISSUER = "cryptoearthcoin.com"
+
+# RSA-3072 Private Key (keep secret!)
+# Generate with: openssl genrsa -out private.pem 3072
+JWT_PRIVATE_KEY = os.getenv(JWT_PRIVATE_KEY)
+
+# RSA-3072 Public Key
+# Generate with: openssl rsa -in private.pem -pubout -out public.pem
+JWT_PUBLIC_KEY = os.getenv(JWT_PUBLIC_KEY)
+
 print(">>> DJANGO LOADED FROM:", BASE_DIR)
 

@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from django.utils import timezone
 
 from .models import Listing, User, HouseOwnership, House, Transaction
+from .views_emails import send_transaction_email
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -411,8 +412,10 @@ def handle_checkout_completed(session):
             tx.status = 'completed'
             tx.completed_at = timezone.now()
             tx.save()
+            # Send transaction confirmation emails asynchronously via Celery (with retry logic)
+            send_transaction_email.delay(tx.id)
         else:
-            Transaction.objects.create(
+            new_tx = Transaction.objects.create(
                 stripe_session_id=session_id,
                 stripe_payment_intent=payment_intent_id,
                 listing_id=listing_id,
@@ -426,6 +429,8 @@ def handle_checkout_completed(session):
                 status='completed',
                 completed_at=timezone.now(),
             )
+            # Send transaction confirmation emails asynchronously via Celery (with retry logic)
+            send_transaction_email.delay(new_tx.id)
 
 
 def handle_payment_failed(payment_intent):

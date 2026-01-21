@@ -9,6 +9,7 @@ from logic import views_listings
 from logic import views_payment
 from logic import views_messages
 from logic import views_user
+from logic import views_jwt
 
 
 urlpatterns = [
@@ -33,6 +34,9 @@ urlpatterns = [
     path('api/house/<str:id_fme>/buy/', views.house_buy, name='house_buy'),
     path('api/house/<str:id_fme>/', views_user.house_detail, name='house_detail'),
 
+    # Listing share adjustment (only when not active)
+    path('api/listings/<uuid:listing_id>/update-shares/', views.listing_update_shares, name='listing_update_shares'),
+
     # Nearby searches
     path('api/listings/nearby/', views_user.listings_nearby, name='listings_nearby'),
     path('api/houses/free_nearby/', views_user.houses_free_nearby, name='houses_free_nearby'),
@@ -48,6 +52,11 @@ urlpatterns = [
     path('api/auth/register/', views_auth.api_register, name='api_register'),
     path('api/auth/csrf/', views_auth.api_csrf, name='api_csrf'),
     path('api/profile/', views_auth.api_profile_update, name='api_profile_update'),
+
+    # JWT Auth (RSA-3072 / RS256)
+    path('api/jwt/login/', views_jwt.api_jwt_login, name='api_jwt_login'),
+    path('api/jwt/refresh/', views_jwt.api_jwt_refresh, name='api_jwt_refresh'),
+    path('api/jwt/whoami/', views_jwt.api_jwt_whoami, name='api_jwt_whoami'),
 
     # Listings
     path('api/listings/', views_listings.api_listings, name='api_listings'),

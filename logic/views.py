@@ -194,6 +194,61 @@ def house_buy(request, id_fme: str):
     return JsonResponse({"ok": False, "error": "NOT_IMPLEMENTED"}, status=501)
 
 
+@login_required_json
+@require_POST
+def listing_update_shares(request, listing_id: str):
+    """Update share count on a cancelled/inactive listing (not active)."""
+    try:
+        listing = Listing.objects.get(id=listing_id)
+    except Listing.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "LISTING_NOT_FOUND"}, status=404)
+
+    # Only the seller can update
+    if listing.seller_id != request.user.id:
+        return JsonResponse({"ok": False, "error": "NOT_OWNER"}, status=403)
+
+    # Only allow updates when listing is NOT active (cancelled or pending)
+    if listing.status == 'active':
+        return JsonResponse({"ok": False, "error": "LISTING_ACTIVE", "message": "Cannot modify shares on active listing. Unlist first."}, status=400)
+
+    # Parse request data
+    try:
+        data = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "INVALID_JSON"}, status=400)
+
+    # Get new share count
+    try:
+        new_shares = int(data.get("shares") or data.get("share_count"))
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "INVALID_SHARES"}, status=400)
+
+    # Validate against ownership
+    ownership = HouseOwnership.objects.filter(house=listing.house, user=request.user).first()
+    if not ownership:
+        return JsonResponse({"ok": False, "error": "NO_OWNERSHIP"}, status=403)
+
+    if new_shares <= 0:
+        return JsonResponse({"ok": False, "error": "SHARES_MUST_BE_POSITIVE"}, status=400)
+
+    if new_shares > ownership.shares:
+        return JsonResponse({"ok": False, "error": "EXCEEDS_OWNERSHIP", "max_shares": ownership.shares}, status=400)
+
+    # Update the listing
+    listing.share_count = new_shares
+    listing.save(update_fields=["share_count"])
+
+    return JsonResponse({
+        "ok": True,
+        "listing": {
+            "id": str(listing.id),
+            "share_count": listing.share_count,
+            "status": listing.status,
+            "price": float(listing.price) if listing.price else None,
+        }
+    })
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # EXTERNAL API (bots/automation)
 # ═══════════════════════════════════════════════════════════════════════════

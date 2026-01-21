@@ -282,50 +282,62 @@ def api_my_houses(request):
 @login_required_json
 @require_GET
 def api_my_transactions(request):
-    """Get user's transaction history (purchases and sales)."""
+    """Get user's transaction history (purchases and sales) from Transaction model."""
+    from logic.models import Transaction
+
     user = request.user
 
-    # Get houses user currently owns (purchases)
-    ownerships = HouseOwnership.objects.filter(user=user).select_related('house')
+    # Get all completed transactions where user is buyer or seller
+    transactions_as_buyer = Transaction.objects.filter(
+        buyer=user,
+        status='completed'
+    ).select_related('house', 'seller', 'listing')
 
-    # Get completed listings where user was seller (sales)
-    sold_listings = Listing.objects.filter(
+    transactions_as_seller = Transaction.objects.filter(
         seller=user,
-        status__in=['pending', 'cancelled']  # completed sales
-    ).select_related('house').order_by('-created_at')
+        status='completed'
+    ).select_related('house', 'buyer', 'listing')
 
     transactions = []
 
-    # Add purchases (current ownerships)
-    for o in ownerships:
-        h = o.house
+    # Add purchases (user was buyer)
+    for tx in transactions_as_buyer:
+        h = tx.house
+        seller = tx.seller
         transactions.append({
+            "id": str(tx.id),
             "role": "buyer",
-            "house_name": h.name or h.id_fme,
-            "house_id_fme": h.id_fme,
-            "house_lat": h.lat,
-            "house_lon": h.lon,
-            "shares": o.shares,
-            "amount": o.bought_for,
-            "currency": "PLN",
-            "created_at": h.created_at.isoformat() if h.created_at else None,
-            "counterparty": None,  # Original seller info not tracked
+            "house_name": h.name or h.id_fme if h else "Unknown",
+            "house_id_fme": h.id_fme if h else None,
+            "house_lat": h.lat if h else None,
+            "house_lon": h.lon if h else None,
+            "shares": tx.shares,
+            "amount": float(tx.amount) if tx.amount else None,
+            "currency": tx.currency or "PLN",
+            "created_at": tx.completed_at.isoformat() if tx.completed_at else (tx.created_at.isoformat() if tx.created_at else None),
+            "counterparty": seller.username if seller else None,
+            "counterparty_id": seller.id if seller else None,
+            "status": tx.status,
         })
 
-    # Add sales (completed listings)
-    for lst in sold_listings:
-        h = lst.house
+    # Add sales (user was seller)
+    for tx in transactions_as_seller:
+        h = tx.house
+        buyer = tx.buyer
         transactions.append({
+            "id": str(tx.id),
             "role": "seller",
             "house_name": h.name or h.id_fme if h else "Unknown",
             "house_id_fme": h.id_fme if h else None,
             "house_lat": h.lat if h else None,
             "house_lon": h.lon if h else None,
-            "shares": lst.share_count,
-            "amount": float(lst.price) if lst.price else None,
-            "currency": getattr(lst, 'currency', 'PLN') or "PLN",
-            "created_at": lst.created_at.isoformat() if lst.created_at else None,
-            "counterparty": None,  # Buyer info not tracked in simple model
+            "shares": tx.shares,
+            "amount": float(tx.amount) if tx.amount else None,
+            "currency": tx.currency or "PLN",
+            "created_at": tx.completed_at.isoformat() if tx.completed_at else (tx.created_at.isoformat() if tx.created_at else None),
+            "counterparty": buyer.username if buyer else None,
+            "counterparty_id": buyer.id if buyer else None,
+            "status": tx.status,
         })
 
     # Sort by date, most recent first

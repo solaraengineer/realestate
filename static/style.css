@@ -995,6 +995,13 @@ label .input {
 }
 
 /* Transaction details */
+.tx-shares {
+  font-size: 14px;
+  color: var(--accent);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
 .tx-counterparty {
   font-size: 14px;
   color: var(--text-dim);

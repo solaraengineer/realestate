@@ -756,14 +756,19 @@
           year: 'numeric'
         }) : '';
 
+        // Show counterparty (who you bought from / sold to)
         const counterpartyText = t.counterparty
-          ? (isBuyer ? 'od ' : 'do ') + t.counterparty
+          ? (isBuyer ? 'od: ' : 'do: ') + t.counterparty
           : '';
+
+        // Show shares count
+        const sharesText = t.shares ? `${t.shares} ${t.shares === 1 ? 'udział' : (t.shares < 5 ? 'udziały' : 'udziałów')}` : '';
 
         html += `
           <div class="transaction-item" data-lat="${t.house_lat || ''}" data-lon="${t.house_lon || ''}" data-id-fme="${t.house_id_fme || ''}">
             <div class="card-left">
               <div class="tx-name">${t.house_name || 'Dom'}</div>
+              <div class="tx-shares">${sharesText}</div>
               <div class="tx-counterparty">${counterpartyText}</div>
               <div class="tx-date">${dateStr}</div>
             </div>

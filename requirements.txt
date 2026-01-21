@@ -34,3 +34,5 @@ Pillow>=12.0.0
 
 # WSGI server
 gunicorn>=22.0.0
+# Celery
+Celery
