@@ -118,7 +118,7 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-CSRF_TRUSTED_ORIGINS = ['https://cryptoearthcoin.com', 'https://www.cryptoearthcoin.com', 'http://3.120.82.242', 'https://3.120.82.242', 'http://http://18.156.60.42']
+CSRF_TRUSTED_ORIGINS = ['https://cryptoearthcoin.com', 'https://www.cryptoearthcoin.com', 'http://3.120.82.242', 'https://3.120.82.242', 'http://18.156.60.42', 'https://18.156.60.42']
 SECURE_SSL_REDIRECT = False
 USE_X_FORWARDED_HOST = True
 

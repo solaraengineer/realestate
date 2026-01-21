@@ -1,4 +1,4 @@
-// static/js/chat.panel.js - Simple Chat Panel
+// static/js/chat.panel.js - Simple Chat Panel with WebSocket Support
 (function() {
   'use strict';
 
@@ -14,6 +14,9 @@
     pendingRequests: [],
     blocked: [],
     messages: [],
+    ws: null,
+    wsConnected: false,
+    wsReconnectTimer: null,
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -32,9 +35,151 @@
       opts.headers['X-CSRFToken'] = csrf();
       opts.body = JSON.stringify(data);
     }
-    const r = await fetch(url, opts);
-    return r.json();
+    try {
+      const r = await fetch(url, opts);
+      const json = await r.json();
+      if (!r.ok && !json.error) {
+        json.error = `HTTP ${r.status}`;
+      }
+      return json;
+    } catch (e) {
+      return { ok: false, error: e.message || 'Network error' };
+    }
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // WEBSOCKET CONNECTION
+  // ═══════════════════════════════════════════════════════════════════════════
+  function connectWebSocket() {
+    if (state.ws && state.ws.readyState === WebSocket.OPEN) return;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/chat/`;
+
+    try {
+      state.ws = new WebSocket(wsUrl);
+
+      state.ws.onopen = () => {
+        console.log('[ChatPanel] WebSocket connected');
+        state.wsConnected = true;
+        if (state.wsReconnectTimer) {
+          clearTimeout(state.wsReconnectTimer);
+          state.wsReconnectTimer = null;
+        }
+      };
+
+      state.ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          handleWsMessage(data);
+        } catch (e) {
+          console.warn('[ChatPanel] WS message parse error:', e);
+        }
+      };
+
+      state.ws.onclose = () => {
+        console.log('[ChatPanel] WebSocket closed');
+        state.wsConnected = false;
+        // Reconnect after 3 seconds
+        if (!state.wsReconnectTimer) {
+          state.wsReconnectTimer = setTimeout(() => {
+            state.wsReconnectTimer = null;
+            connectWebSocket();
+          }, 3000);
+        }
+      };
+
+      state.ws.onerror = (err) => {
+        console.warn('[ChatPanel] WebSocket error:', err);
+      };
+    } catch (e) {
+      console.warn('[ChatPanel] WebSocket connection failed:', e);
+    }
+  }
+
+  function disconnectWebSocket() {
+    if (state.wsReconnectTimer) {
+      clearTimeout(state.wsReconnectTimer);
+      state.wsReconnectTimer = null;
+    }
+    if (state.ws) {
+      state.ws.close();
+      state.ws = null;
+    }
+    state.wsConnected = false;
+  }
+
+  function handleWsMessage(data) {
+    const type = data.type;
+
+    if (type === 'connection.ack') {
+      console.log('[ChatPanel] WS authenticated as user:', data.user_id);
+      return;
+    }
+
+    if (type === 'message.new') {
+      const msg = data.message;
+      // If we're in a conversation with this user, add the message
+      if (state.selectedUserId &&
+          (String(msg.sender_id) === String(state.selectedUserId) ||
+           String(msg.receiver_id) === String(state.selectedUserId))) {
+        const isMine = String(msg.sender_id) === String(window.currentUserId);
+        state.messages.push({
+          id: msg.id,
+          sender_id: msg.sender_id,
+          content: msg.content,
+          time: msg.time,
+          mine: isMine
+        });
+        renderPanel();
+        // Scroll to bottom
+        setTimeout(() => {
+          const msgList = document.getElementById('messageList');
+          if (msgList) msgList.scrollTop = msgList.scrollHeight;
+        }, 50);
+      } else {
+        // Refresh threads to show new message indicator
+        loadThreads().then(() => {
+          if (state.activeTab === 'chats' && !state.selectedUserId) {
+            renderPanel();
+          }
+        });
+      }
+      return;
+    }
+
+    if (type === 'message.error') {
+      console.warn('[ChatPanel] Message error:', data.error);
+      showError(getErrorMessage(data.error));
+      return;
+    }
+
+    if (type === 'pong') {
+      // Keep-alive response
+      return;
+    }
+  }
+
+  function sendWsMessage(toUserId, text) {
+    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+      console.warn('[ChatPanel] WebSocket not connected, falling back to HTTP');
+      return false;
+    }
+
+    state.ws.send(JSON.stringify({
+      type: 'message.send',
+      to: toUserId,
+      text: text
+    }));
+    return true;
+  }
+
+  // Keep-alive ping
+  setInterval(() => {
+    if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+      state.ws.send(JSON.stringify({ type: 'ping' }));
+    }
+  }, 30000);
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER FUNCTIONS
@@ -147,16 +292,27 @@
   function renderFriendsTab() {
     let html = '<div class="chat-section">';
 
+    // Add friend search
+    html += `
+      <div class="chat-subtitle">Add Friend</div>
+      <div class="friend-add-section" style="margin-bottom:16px;">
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="addFriendSearch" class="chat-input" placeholder="Search username..." style="flex:1;">
+        </div>
+        <div id="addFriendResults" class="search-results" style="margin-top:4px;"></div>
+      </div>
+    `;
+
     // Pending requests
     if (state.pendingRequests.length > 0) {
       html += '<div class="chat-subtitle">Pending Requests</div><div class="chat-list">';
       for (const req of state.pendingRequests) {
         html += `
-          <div class="chat-item pending-request">
-            <span>${escHtml(req.from_username)}</span>
-            <div class="chat-item-actions">
-              <button class="chat-btn accept" data-accept="${req.from_user_id}">Accept</button>
-              <button class="chat-btn decline" data-decline="${req.from_user_id}">Decline</button>
+          <div class="chat-item pending-request" style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(255,200,0,0.1);border-radius:8px;margin-bottom:6px;">
+            <span style="font-weight:600;">${escHtml(req.from_username)}</span>
+            <div class="chat-item-actions" style="display:flex;gap:6px;">
+              <button class="chat-btn accept" data-accept="${req.from_user_id}" style="background:#22c55e;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">Accept</button>
+              <button class="chat-btn decline" data-decline="${req.from_user_id}" style="background:#ef4444;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">Decline</button>
             </div>
           </div>
         `;
@@ -165,17 +321,17 @@
     }
 
     // Friends list
-    html += '<div class="chat-subtitle">Friends</div><div class="chat-list">';
+    html += '<div class="chat-subtitle">My Friends</div><div class="chat-list">';
     if (state.friends.length === 0) {
-      html += '<div class="chat-empty">No friends yet</div>';
+      html += '<div class="chat-empty" style="color:var(--text-muted);padding:12px;">No friends yet. Search for users above to add friends!</div>';
     } else {
       for (const f of state.friends) {
         html += `
-          <div class="chat-item friend-item">
-            <span>${escHtml(f.username)}</span>
-            <div class="chat-item-actions">
-              <button class="chat-btn message" data-message="${f.id}" data-name="${escHtml(f.username)}">Message</button>
-              <button class="chat-btn remove" data-remove-friend="${f.id}">Remove</button>
+          <div class="chat-item friend-item" style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--glass-light);border-radius:8px;margin-bottom:6px;">
+            <span style="font-weight:600;">${escHtml(f.username)}</span>
+            <div class="chat-item-actions" style="display:flex;gap:6px;">
+              <button class="chat-btn message" data-message="${f.id}" data-name="${escHtml(f.username)}" style="background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">Message</button>
+              <button class="chat-btn remove" data-remove-friend="${f.id}" style="background:#ef4444;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;">X</button>
             </div>
           </div>
         `;
@@ -233,13 +389,23 @@
       };
     }
 
-    // User search
+    // User search (in chats)
     const searchInput = document.getElementById('userSearch');
     if (searchInput) {
       let debounce = null;
       searchInput.oninput = () => {
         clearTimeout(debounce);
         debounce = setTimeout(() => searchUsers(searchInput.value), 300);
+      };
+    }
+
+    // Friend search (in friends tab)
+    const addFriendSearch = document.getElementById('addFriendSearch');
+    if (addFriendSearch) {
+      let debounce = null;
+      addFriendSearch.oninput = () => {
+        clearTimeout(debounce);
+        debounce = setTimeout(() => searchUsersForFriend(addFriendSearch.value), 300);
       };
     }
 
@@ -378,19 +544,41 @@
     text = (text || '').trim();
     if (!text || !state.selectedUserId) return;
 
-    const res = await api('/api/chat/send/', 'POST', {
-      to: state.selectedUserId,
-      content: text
-    });
+    // Try WebSocket first for real-time delivery
+    const wsSent = sendWsMessage(state.selectedUserId, text);
 
-    if (res.ok) {
-      // Add to local messages
+    if (wsSent) {
+      // Optimistically add to local messages (will be confirmed by WS response)
       state.messages.push({
         content: text,
         time: new Date().toISOString(),
         mine: true
       });
       renderPanel();
+      // Clear input
+      const msgInput = document.getElementById('messageInput');
+      if (msgInput) msgInput.value = '';
+    } else {
+      // Fall back to HTTP API
+      const res = await api('/api/chat/send/', 'POST', {
+        to: state.selectedUserId,
+        content: text
+      });
+
+      if (res.ok) {
+        // Add to local messages
+        state.messages.push({
+          content: text,
+          time: new Date().toISOString(),
+          mine: true
+        });
+        renderPanel();
+        // Clear input
+        const msgInput = document.getElementById('messageInput');
+        if (msgInput) msgInput.value = '';
+      } else {
+        showError(getErrorMessage(res.error));
+      }
     }
   }
 
@@ -420,27 +608,81 @@
     }
   }
 
+  async function searchUsersForFriend(query) {
+    const resultsDiv = document.getElementById('addFriendResults');
+    if (!resultsDiv) return;
+
+    if (!query || query.length < 2) {
+      resultsDiv.innerHTML = '';
+      return;
+    }
+
+    const res = await api(`/api/users/search/?q=${encodeURIComponent(query)}`);
+    if (res.ok && res.users) {
+      // Filter out self and existing friends
+      const friendIds = state.friends.map(f => String(f.id));
+      const filtered = res.users.filter(u =>
+        String(u.id) !== String(window.currentUserId) &&
+        !friendIds.includes(String(u.id))
+      );
+
+      if (filtered.length === 0) {
+        resultsDiv.innerHTML = '<div style="padding:8px;color:var(--text-muted);font-size:12px;">No users found</div>';
+        return;
+      }
+
+      resultsDiv.innerHTML = filtered.map(u => `
+        <div class="search-result" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--glass-light);border-radius:6px;margin-bottom:4px;">
+          <span>${escHtml(u.username)}</span>
+          <button class="add-friend-btn" data-user-id="${u.id}" style="background:var(--accent);color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">+ Add</button>
+        </div>
+      `).join('');
+
+      resultsDiv.querySelectorAll('.add-friend-btn').forEach(btn => {
+        btn.onclick = async (e) => {
+          e.stopPropagation();
+          const userId = btn.dataset.userId;
+          btn.disabled = true;
+          btn.textContent = '...';
+
+          const result = await addFriend(userId);
+
+          // Clear search after adding
+          const input = document.getElementById('addFriendSearch');
+          if (input) input.value = '';
+          resultsDiv.innerHTML = '';
+        };
+      });
+    }
+  }
+
   async function addFriend(userId) {
     if (!userId) return;
     const res = await api('/api/friends/add/', 'POST', { user_id: userId });
     if (res.ok) {
-      alert('Friend request sent!');
+      showSuccess('Friend request sent!');
     } else {
-      alert(res.error || 'Failed to send request');
+      showError(getErrorMessage(res.error));
     }
   }
 
   async function acceptFriend(userId) {
-    const res = await api('/api/friends/accept/', 'POST', { user_id: userId });
+    const res = await api('/api/friends/accept/', 'POST', { from_user_id: userId });
     if (res.ok) {
+      showSuccess('Friend request accepted!');
       loadTabData();
+    } else {
+      showError(getErrorMessage(res.error));
     }
   }
 
   async function declineFriend(userId) {
     const res = await api('/api/friends/remove/', 'POST', { user_id: userId });
     if (res.ok) {
+      showSuccess('Friend request declined');
       loadTabData();
+    } else {
+      showError(getErrorMessage(res.error));
     }
   }
 
@@ -448,7 +690,10 @@
     if (!confirm('Remove this friend?')) return;
     const res = await api('/api/friends/remove/', 'POST', { user_id: userId });
     if (res.ok) {
+      showSuccess('Friend removed');
       loadTabData();
+    } else {
+      showError(getErrorMessage(res.error));
     }
   }
 
@@ -459,14 +704,20 @@
     if (res.ok) {
       state.selectedUserId = null;
       state.selectedUserName = null;
+      showSuccess('User blocked');
       loadTabData();
+    } else {
+      showError(getErrorMessage(res.error));
     }
   }
 
   async function unblockUser(userId) {
     const res = await api('/api/unblock/', 'POST', { user_id: userId });
     if (res.ok) {
+      showSuccess('User unblocked');
       loadTabData();
+    } else {
+      showError(getErrorMessage(res.error));
     }
   }
 
@@ -485,12 +736,54 @@
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
+  // Error message mapping for user-friendly display
+  const ERROR_MESSAGES = {
+    'MISSING_RECEIVER': 'Receiver not specified',
+    'EMPTY_MESSAGE': 'Message cannot be empty',
+    'USER_NOT_FOUND': 'User not found',
+    'CANNOT_MESSAGE_SELF': 'Cannot message yourself',
+    'BLOCKED': 'You are blocked by this user',
+    'BLOCKED_BY_USER': 'You are blocked by this user',
+    'MISSING_TO_OR_TEXT': 'Missing recipient or message',
+    'BAD_TO_ID': 'Invalid recipient ID',
+    'MISSING_USER_ID': 'User ID not specified',
+    'CANNOT_ADD_SELF': 'Cannot add yourself as friend',
+    'ALREADY_FRIENDS': 'Already friends',
+    'REQUEST_PENDING': 'Friend request already pending',
+    'REQUEST_NOT_FOUND': 'Friend request not found',
+    'CANNOT_BLOCK_SELF': 'Cannot block yourself',
+    'AUTH_REQUIRED': 'Please log in first',
+    'NOT_AUTHENTICATED': 'Please log in first',
+  };
+
+  function getErrorMessage(code) {
+    return ERROR_MESSAGES[code] || code || 'An error occurred';
+  }
+
+  function showError(message) {
+    if (window.toast) {
+      window.toast(message);
+    } else {
+      alert(message);
+    }
+  }
+
+  function showSuccess(message) {
+    if (window.toast) {
+      window.toast(message);
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // INIT & EXPORTS
   // ═══════════════════════════════════════════════════════════════════════════
 
   function initChatPanel() {
     loadTabData();
+    // Connect WebSocket if user is logged in
+    if (window.currentUserId) {
+      connectWebSocket();
+    }
   }
 
   // Export to window
@@ -501,10 +794,28 @@
       if (panel) {
         panel.style.display = 'block';
         await loadTabData();
+        // Ensure WebSocket is connected when panel opens
+        if (window.currentUserId) {
+          connectWebSocket();
+        }
       }
+    },
+    close: function() {
+      const panel = document.getElementById('chatPanel');
+      if (panel) {
+        panel.style.display = 'none';
+      }
+      // Don't disconnect WebSocket - keep it for notifications
     },
     openChat: openConversation,
     render: renderPanel,
+    connectWs: connectWebSocket,
+    disconnectWs: disconnectWebSocket,
+  };
+
+  // Export global function for inbox polling (called from menu.js on login)
+  window.startChatInboxPolling = function() {
+    connectWebSocket();
   };
 
   // Auto-init when DOM ready
