@@ -1029,6 +1029,11 @@ label .input {
   color: var(--success);
 }
 
+.status-badge.not-listed {
+  background: var(--glass-light);
+  color: var(--text-muted);
+}
+
 .status-badge.bought {
   background: rgba(59, 130, 246, 0.15);
   color: #60a5fa;
@@ -1037,6 +1042,145 @@ label .input {
 .status-badge.sold {
   background: var(--success-bg);
   color: var(--success);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MY HOMES - HOUSE CARDS WITH ACTIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.house-card {
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: all 0.15s ease;
+}
+
+.house-card:hover {
+  border-color: var(--border-hover);
+}
+
+.house-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 18px 20px;
+  cursor: pointer;
+  gap: 16px;
+  transition: background 0.15s ease;
+}
+
+.house-card-header:hover {
+  background: var(--glass-hover);
+}
+
+.house-card .card-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.house-card .card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.house-card .house-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.house-card .house-shares {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.house-card .listing-shares {
+  font-size: 12px;
+  color: var(--accent);
+  margin-top: 4px;
+}
+
+.house-card .price {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* House Actions */
+.house-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.15);
+  flex-wrap: wrap;
+}
+
+.btn-action {
+  padding: 10px 16px;
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-action:hover {
+  background: var(--glass-hover);
+  border-color: var(--border-hover);
+  color: var(--text);
+}
+
+.btn-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Go Live - Primary action */
+.btn-action.btn-go-live {
+  background: var(--success-bg);
+  border-color: rgba(74, 222, 128, 0.3);
+  color: var(--success);
+  flex: 1;
+}
+
+.btn-action.btn-go-live:hover {
+  background: rgba(74, 222, 128, 0.25);
+}
+
+/* Cancel Listing - Danger action */
+.btn-action.btn-cancel-listing {
+  background: var(--danger-bg);
+  border-color: rgba(248, 113, 113, 0.3);
+  color: var(--danger);
+}
+
+.btn-action.btn-cancel-listing:hover {
+  background: rgba(248, 113, 113, 0.25);
+}
+
+/* Edit buttons */
+.btn-action.btn-edit-price,
+.btn-action.btn-edit-shares {
+  background: var(--accent-bg);
+  border-color: rgba(167, 139, 250, 0.3);
+  color: var(--accent);
+}
+
+.btn-action.btn-edit-price:hover,
+.btn-action.btn-edit-shares:hover {
+  background: rgba(167, 139, 250, 0.25);
 }
 
 /* Price display */
@@ -1284,4 +1428,447 @@ label .input {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ERROR MODAL SYSTEM
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.error-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.error-modal-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.error-modal {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+  transform: scale(0.95) translateY(10px);
+  transition: transform 0.25s var(--ease);
+}
+
+.error-modal-overlay.visible .error-modal {
+  transform: scale(1) translateY(0);
+}
+
+/* Modal Types */
+.error-modal.error-modal-error .error-modal-icon {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.error-modal.error-modal-warning .error-modal-icon {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.error-modal.error-modal-info .error-modal-icon {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.error-modal.error-modal-success .error-modal-icon {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+/* Header */
+.error-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 24px 0;
+  position: relative;
+}
+
+.error-modal-icon {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-modal-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.error-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  line-height: 1.3;
+}
+
+.error-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.error-modal-close:hover {
+  background: var(--danger-bg);
+  border-color: rgba(248, 113, 113, 0.3);
+  color: var(--danger);
+}
+
+/* Body */
+.error-modal-body {
+  padding: 20px 24px;
+}
+
+.error-modal-message {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.error-modal-details {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* Footer */
+.error-modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px 24px;
+  justify-content: flex-end;
+}
+
+.error-modal-btn {
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.error-modal-btn-secondary {
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.error-modal-btn-secondary:hover {
+  background: var(--glass-hover);
+  border-color: var(--border-hover);
+  color: var(--text);
+}
+
+.error-modal-btn-primary {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: #000;
+}
+
+.error-modal-btn-primary:hover {
+  background: #c4b5fd;
+  border-color: #c4b5fd;
+}
+
+/* Success type button */
+.error-modal-success .error-modal-btn-primary {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.error-modal-success .error-modal-btn-primary:hover {
+  background: #6ee7a0;
+  border-color: #6ee7a0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UNIFIED MODAL SYSTEM (modal.js)
+   Replaces alert(), confirm(), prompt()
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s var(--ease), visibility 0.25s var(--ease);
+}
+
+.modal-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-container {
+  background: var(--glass);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 420px;
+  overflow: hidden;
+  transform: scale(0.92) translateY(20px);
+  transition: transform 0.3s var(--ease);
+}
+
+.modal-overlay.visible .modal-container {
+  transform: scale(1) translateY(0);
+}
+
+/* Modal Header */
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 24px 0;
+  position: relative;
+}
+
+.modal-icon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  line-height: 1.3;
+  margin: 0;
+  padding-right: 36px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 20px;
+  font-weight: 400;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  background: var(--danger-bg);
+  border-color: rgba(248, 113, 113, 0.3);
+  color: var(--danger);
+}
+
+/* Modal Body */
+.modal-body {
+  padding: 18px 24px;
+}
+
+.modal-message {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+
+.modal-details {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+  display: none;
+}
+
+.modal-details[style*="block"] {
+  display: block;
+}
+
+/* Modal Input */
+.modal-input-wrapper {
+  margin-top: 16px;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.modal-input::placeholder {
+  color: var(--text-muted);
+}
+
+.modal-input:hover {
+  border-color: var(--border-hover);
+}
+
+.modal-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+
+.modal-input-error {
+  font-size: 12px;
+  color: var(--danger);
+  margin: 8px 0 0;
+  display: none;
+}
+
+/* Modal Footer */
+.modal-footer {
+  display: flex;
+  gap: 10px;
+  padding: 14px 24px 22px;
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+.modal-btn:active {
+  transform: scale(0.97);
+}
+
+.modal-btn-secondary {
+  background: var(--glass-light);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.modal-btn-secondary:hover {
+  background: var(--glass-hover);
+  border-color: var(--border-hover);
+  color: var(--text);
+}
+
+.modal-btn-primary {
+  background: var(--accent);
+  color: #000;
+}
+
+.modal-btn-primary:hover {
+  background: #c4b5fd;
+}
+
+/* Modal Type Variants */
+.modal-error .modal-icon {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.modal-warning .modal-icon {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.modal-info .modal-icon {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.modal-success .modal-icon {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.modal-success .modal-btn-primary {
+  background: var(--success);
+}
+
+.modal-success .modal-btn-primary:hover {
+  background: #6ee7a0;
+}
+
+.modal-question .modal-icon {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.modal-input .modal-icon {
+  background: var(--glass-light);
+  color: var(--text-dim);
+}
+
+/* Toast Visibility Class */
+#toast.toast-visible {
+  display: block !important;
+  animation: toastUp 0.3s var(--ease) forwards;
 }

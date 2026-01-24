@@ -49,15 +49,23 @@
   const hide = (el) => { if (el) el.style.display = 'none'; };
 
   function toast(msg) {
+    // Use Modal.toast if available
+    if (window.Modal && typeof window.Modal.toast === 'function') {
+      window.Modal.toast(msg, 2000);
+      return;
+    }
+
     const t = document.getElementById('toast');
-    if (!t) return alert(msg);
+    if (!t) return;
 
     t.textContent = msg;
     t.style.display = 'block';
+    t.classList.add('toast-visible');
 
     clearTimeout(t._timeout);
     t._timeout = setTimeout(() => {
-      t.style.display = 'none';
+      t.classList.remove('toast-visible');
+      setTimeout(() => { t.style.display = 'none'; }, 300);
     }, 2000);
   }
   window.toast = toast;
@@ -631,7 +639,7 @@
   window.getCookie = Auth?.getCookie;
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // MY HOUSES - REDESIGNED CARDS
+  // MY HOUSES - REDESIGNED CARDS WITH ACTIONS
   // ═══════════════════════════════════════════════════════════════════════════
 
   async function loadMyHouses() {
@@ -649,7 +657,7 @@
 
       // Check for redirect (login required)
       if (res.redirected || res.url.includes('?next=')) {
-        body.innerHTML = '<p style="color:var(--danger);">Sesja wygasła - zaloguj się ponownie</p>';
+        body.innerHTML = '<p style="color:var(--danger);">Session expired - please log in again</p>';
         return;
       }
 
@@ -662,47 +670,76 @@
       console.log('[MyHouses] Data:', data);
 
       if (!data.ok) {
-        body.innerHTML = `<p style="color:var(--danger);">Błąd: ${data.error || 'nieznany'}</p>`;
+        body.innerHTML = `<p style="color:var(--danger);">Error: ${data.error || 'unknown'}</p>`;
         return;
       }
 
       if (!data.houses || data.houses.length === 0) {
-        body.innerHTML = '<p style="color:var(--text-muted)">Nie posiadasz żadnych nieruchomości.</p>';
+        body.innerHTML = '<p style="color:var(--text-muted)">You don\'t own any properties yet.</p>';
         return;
       }
 
       let html = '<div class="cards-list">';
       for (const h of data.houses) {
         const statusBadge = h.has_listing
-          ? `<span class="status-badge for-sale">Na sprzedaż</span>`
-          : '';
+          ? `<span class="status-badge for-sale">Listed</span>`
+          : `<span class="status-badge not-listed">Not Listed</span>`;
 
         const priceDisplay = h.has_listing && h.listing_price
-          ? `<div class="price">${Number(h.listing_price).toLocaleString('pl-PL')} PLN</div>`
+          ? `<div class="price">${Number(h.listing_price).toLocaleString('en-US')} ${h.listing_currency || 'PLN'}</div>`
           : '';
 
+        const sharesListed = h.has_listing && h.listing_shares
+          ? `<div class="listing-shares">${h.listing_shares} shares listed</div>`
+          : '';
+
+        // Action buttons based on listing status
+        let actionsHtml = '';
+        if (h.has_listing) {
+          // Has active listing - show Cancel, Edit Price, Edit Shares
+          actionsHtml = `
+            <div class="house-actions">
+              <button class="btn-action btn-edit-price" data-id-fme="${h.id_fme}" data-listing-id="${h.listing_id}" data-current-shares="${h.listing_shares || h.shares}">Edit Price</button>
+              <button class="btn-action btn-edit-shares" data-id-fme="${h.id_fme}" data-listing-id="${h.listing_id}" data-max-shares="${h.shares}" data-current-price="${h.listing_price || 0}">Edit Shares</button>
+              <button class="btn-action btn-cancel-listing" data-id-fme="${h.id_fme}">Cancel Listing</button>
+            </div>
+          `;
+        } else {
+          // No listing - show Go Live button
+          actionsHtml = `
+            <div class="house-actions">
+              <button class="btn-action btn-go-live" data-id-fme="${h.id_fme}" data-max-shares="${h.shares}">Go Live</button>
+            </div>
+          `;
+        }
+
         html += `
-          <div class="house-item" data-lat="${h.lat || ''}" data-lon="${h.lon || ''}" data-id-fme="${h.id_fme || ''}">
-            <div class="card-left">
-              <div class="house-name">${h.name || 'Dom'}</div>
-              <div class="house-shares">${h.shares}/${h.total_shares} udziałów (${h.percent}%)</div>
+          <div class="house-card" data-lat="${h.lat || ''}" data-lon="${h.lon || ''}" data-id-fme="${h.id_fme || ''}">
+            <div class="house-card-header">
+              <div class="card-left">
+                <div class="house-name">${h.name || 'Property'}</div>
+                <div class="house-shares">${h.shares}/${h.total_shares} shares (${h.percent}%)</div>
+                ${sharesListed}
+              </div>
+              <div class="card-right">
+                ${statusBadge}
+                ${priceDisplay}
+              </div>
             </div>
-            <div class="card-right">
-              ${statusBadge}
-              ${priceDisplay}
-            </div>
+            ${actionsHtml}
           </div>
         `;
       }
       html += '</div>';
       body.innerHTML = html;
 
-      // Add click handlers for fly-to
-      body.querySelectorAll('.house-item').forEach(el => {
+      // Add click handlers for fly-to (on header only)
+      body.querySelectorAll('.house-card-header').forEach(el => {
         el.addEventListener('click', () => {
-          const lat = parseFloat(el.dataset.lat);
-          const lon = parseFloat(el.dataset.lon);
-          const idFme = el.dataset.idFme;
+          const card = el.closest('.house-card');
+          const lat = parseFloat(card.dataset.lat);
+          const lon = parseFloat(card.dataset.lon);
+          const idFme = card.dataset.idFme;
 
           if (lat && lon && window.__viewer) {
             window.__viewer.camera.flyTo({
@@ -717,9 +754,239 @@
         });
       });
 
+      // ─────────────────────────────────────────────────────────────────────
+      // GO LIVE - Create new listing
+      // ─────────────────────────────────────────────────────────────────────
+      body.querySelectorAll('.btn-go-live').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const idFme = btn.dataset.idFme;
+          const maxShares = parseInt(btn.dataset.maxShares) || 1;
+
+          // Check if Modal is available
+          if (!window.Modal || !window.Modal.prompt) {
+            console.error('[GoLive] Modal not available');
+            toast('Error: Modal system not loaded');
+            return;
+          }
+
+          // Prompt for shares using Modal
+          const shares = await window.Modal.prompt(
+            `How many shares do you want to list? (1-${maxShares})`,
+            '',
+            { title: 'List Shares', inputType: 'number', min: 1, max: maxShares, placeholder: 'Number of shares' }
+          );
+          if (shares === null) return;
+
+          // Prompt for price using Modal
+          const price = await window.Modal.prompt(
+            'Enter total price for these shares:',
+            '',
+            { title: 'Set Price', inputType: 'number', min: 0.01, placeholder: 'Price in PLN' }
+          );
+          if (price === null) return;
+
+          btn.disabled = true;
+          btn.textContent = 'Creating...';
+
+          try {
+            const resp = await fetch(`/api/house/${encodeURIComponent(idFme)}/list/`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+              },
+              credentials: 'same-origin',
+              body: JSON.stringify({ price: String(price), share_count: shares })
+            });
+            const data = await resp.json();
+
+            if (!resp.ok || !data.ok) {
+              const errorCode = data.error || 'UNKNOWN_ERROR';
+              window.Modal.showError(errorCode, data.message);
+              btn.disabled = false;
+              btn.textContent = 'Go Live';
+              return;
+            }
+
+            window.Modal.showSuccess('Success', 'Listing created successfully!');
+            loadMyHouses(); // Refresh
+          } catch (err) {
+            console.error('[GoLive]', err);
+            window.Modal.showError('UNKNOWN_ERROR', err.message);
+            btn.disabled = false;
+            btn.textContent = 'Go Live';
+          }
+        });
+      });
+
+      // ─────────────────────────────────────────────────────────────────────
+      // CANCEL LISTING
+      // ─────────────────────────────────────────────────────────────────────
+      body.querySelectorAll('.btn-cancel-listing').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const idFme = btn.dataset.idFme;
+
+          if (!window.Modal || !window.Modal.confirm) {
+            console.error('[CancelListing] Modal not available');
+            toast('Error: Modal system not loaded');
+            return;
+          }
+
+          const confirmed = await window.Modal.confirm(
+            'Are you sure you want to cancel this listing?',
+            'Cancel Listing',
+            { confirmText: 'Yes, Cancel', cancelText: 'Keep Listed' }
+          );
+          if (!confirmed) return;
+
+          btn.disabled = true;
+          btn.textContent = 'Cancelling...';
+
+          try {
+            const resp = await fetch(`/api/house/${encodeURIComponent(idFme)}/unlist/`, {
+              method: 'POST',
+              headers: { 'X-CSRFToken': getCookie('csrftoken') },
+              credentials: 'same-origin'
+            });
+            const data = await resp.json();
+
+            if (!resp.ok || !data.ok) {
+              const errorCode = data.error || 'UNKNOWN_ERROR';
+              window.Modal.showError(errorCode, data.message);
+              btn.disabled = false;
+              btn.textContent = 'Cancel Listing';
+              return;
+            }
+
+            window.Modal.showSuccess('Success', 'Listing cancelled!');
+            loadMyHouses(); // Refresh
+          } catch (err) {
+            console.error('[CancelListing]', err);
+            window.Modal.showError('UNKNOWN_ERROR', err.message);
+            btn.disabled = false;
+            btn.textContent = 'Cancel Listing';
+          }
+        });
+      });
+
+      // ─────────────────────────────────────────────────────────────────────
+      // EDIT PRICE
+      // ─────────────────────────────────────────────────────────────────────
+      body.querySelectorAll('.btn-edit-price').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const idFme = btn.dataset.idFme;
+
+          if (!window.Modal || !window.Modal.prompt) {
+            console.error('[EditPrice] Modal not available');
+            toast('Error: Modal system not loaded');
+            return;
+          }
+
+          const price = await window.Modal.prompt(
+            'Enter new price:',
+            '',
+            { title: 'Edit Price', inputType: 'number', min: 0.01, placeholder: 'New price in PLN' }
+          );
+          if (price === null) return;
+
+          btn.disabled = true;
+          btn.textContent = 'Updating...';
+
+          try {
+            const resp = await fetch(`/api/house/${encodeURIComponent(idFme)}/list/`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+              },
+              credentials: 'same-origin',
+              body: JSON.stringify({ price: String(price) })
+            });
+            const data = await resp.json();
+
+            if (!resp.ok || !data.ok) {
+              const errorCode = data.error || 'UNKNOWN_ERROR';
+              window.Modal.showError(errorCode, data.message);
+              btn.disabled = false;
+              btn.textContent = 'Edit Price';
+              return;
+            }
+
+            window.Modal.showSuccess('Success', 'Price updated!');
+            loadMyHouses(); // Refresh
+          } catch (err) {
+            console.error('[EditPrice]', err);
+            window.Modal.showError('UNKNOWN_ERROR', err.message);
+            btn.disabled = false;
+            btn.textContent = 'Edit Price';
+          }
+        });
+      });
+
+      // ─────────────────────────────────────────────────────────────────────
+      // EDIT SHARES
+      // ─────────────────────────────────────────────────────────────────────
+      body.querySelectorAll('.btn-edit-shares').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const idFme = btn.dataset.idFme;
+          const maxShares = parseInt(btn.dataset.maxShares) || 1;
+          const currentPrice = parseFloat(btn.dataset.currentPrice) || 0;
+
+          if (!window.Modal || !window.Modal.prompt) {
+            console.error('[EditShares] Modal not available');
+            toast('Error: Modal system not loaded');
+            return;
+          }
+
+          const shares = await window.Modal.prompt(
+            `How many shares do you want to list? (1-${maxShares})`,
+            '',
+            { title: 'Edit Shares', inputType: 'number', min: 1, max: maxShares, placeholder: 'Number of shares' }
+          );
+          if (shares === null) return;
+
+          btn.disabled = true;
+          btn.textContent = 'Updating...';
+
+          try {
+            // Include current price to keep it unchanged
+            const resp = await fetch(`/api/house/${encodeURIComponent(idFme)}/list/`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+              },
+              credentials: 'same-origin',
+              body: JSON.stringify({ share_count: shares, price: String(currentPrice) })
+            });
+            const data = await resp.json();
+
+            if (!resp.ok || !data.ok) {
+              const errorCode = data.error || 'UNKNOWN_ERROR';
+              window.Modal.showError(errorCode, data.message);
+              btn.disabled = false;
+              btn.textContent = 'Edit Shares';
+              return;
+            }
+
+            window.Modal.showSuccess('Success', 'Shares updated!');
+            loadMyHouses(); // Refresh
+          } catch (err) {
+            console.error('[EditShares]', err);
+            window.Modal.showError('UNKNOWN_ERROR', err.message);
+            btn.disabled = false;
+            btn.textContent = 'Edit Shares';
+          }
+        });
+      });
+
     } catch (e) {
       console.error('[MyHouses] Error:', e);
-      body.innerHTML = `<p style="color:var(--danger);">Błąd: ${e.message}</p>`;
+      body.innerHTML = `<p style="color:var(--danger);">Error: ${e.message}</p>`;
     }
   }
 
@@ -1035,19 +1302,6 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function buyListing(listingId) {
-    const ERROR_MESSAGES = {
-        'BUYER_NOT_ONBOARDED': 'Musisz najpierw skonfigurowac Stripe w ustawieniach profilu.',
-        'BUYER_CHARGES_DISABLED': 'Twoje konto Stripe nie jest w pelni zweryfikowane.',
-        'SELLER_NOT_ONBOARDED': 'Sprzedawca nie ma skonfigurowanego konta Stripe.',
-        'SELLER_CHARGES_DISABLED': 'Konto Stripe sprzedawcy nie jest zweryfikowane.',
-        'SELLER_PAYOUTS_DISABLED': 'Sprzedawca nie moze jeszcze otrzymywac platnosci.',
-        'LISTING_NOT_FOUND': 'Oferta nie zostala znaleziona.',
-        'LISTING_NOT_ACTIVE': 'Ta oferta nie jest juz aktywna.',
-        'NO_SHARES_LEFT': 'Brak dostepnych udzialow.',
-        'CANNOT_BUY_OWN': 'Nie mozesz kupic wlasnej oferty.',
-        'AUTH_REQUIRED': 'Musisz byc zalogowany.',
-    };
-
     try {
         const res = await fetch('/api/checkout/', {
             method: 'POST',
@@ -1062,8 +1316,8 @@ async function buyListing(listingId) {
         const data = await res.json();
 
         if (!data.ok) {
-            const errorMsg = ERROR_MESSAGES[data.error] || data.message || data.error || 'Blad platnosci';
-            toast(errorMsg);
+            const errorCode = data.error || 'UNKNOWN_ERROR';
+            window.Modal.showError(errorCode, data.message);
             return;
         }
 
@@ -1072,7 +1326,7 @@ async function buyListing(listingId) {
 
     } catch (e) {
         console.error('[Checkout]', e);
-        toast('Blad polaczenia');
+        window.Modal.showError('UNKNOWN_ERROR', 'Connection error. Please try again.');
     }
 }
 

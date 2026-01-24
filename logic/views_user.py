@@ -273,7 +273,10 @@ def api_my_houses(request):
             "total_shares": total,
             "percent": round((o.shares / total) * 100, 2),
             "has_listing": listing is not None,
+            "listing_id": str(listing.id) if listing else None,
             "listing_price": float(listing.price) if listing else None,
+            "listing_shares": listing.share_count if listing else None,
+            "listing_currency": listing.currency if listing else "PLN",
         })
 
     return JsonResponse({"ok": True, "houses": houses})

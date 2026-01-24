@@ -687,7 +687,8 @@
   }
 
   async function removeFriend(userId) {
-    if (!confirm('Remove this friend?')) return;
+    const confirmed = await window.Modal?.confirm('Remove this friend?', 'Remove Friend', { confirmText: 'Remove', cancelText: 'Cancel' });
+    if (!confirmed) return;
     const res = await api('/api/friends/remove/', 'POST', { user_id: userId });
     if (res.ok) {
       showSuccess('Friend removed');
@@ -699,7 +700,8 @@
 
   async function blockUser(userId) {
     if (!userId) return;
-    if (!confirm('Block this user?')) return;
+    const confirmed = await window.Modal?.confirm('Block this user?', 'Block User', { confirmText: 'Block', cancelText: 'Cancel' });
+    if (!confirmed) return;
     const res = await api('/api/block/', 'POST', { user_id: userId });
     if (res.ok) {
       state.selectedUserId = null;
@@ -761,10 +763,10 @@
   }
 
   function showError(message) {
-    if (window.toast) {
+    if (window.Modal) {
+      window.Modal.alert(message, 'Błąd', 'error');
+    } else if (window.toast) {
       window.toast(message);
-    } else {
-      alert(message);
     }
   }
 

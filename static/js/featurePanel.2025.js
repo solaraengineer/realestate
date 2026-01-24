@@ -594,25 +594,30 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                 const myShares = myOwnerEntry ? myOwnerEntry.shares : 0;
 
                 if (!myShares) {
-                  alert('Nie masz udziałów w tym domu.');
+                  if (window.Modal) {
+                    window.Modal.showError('NOT_OWNER');
+                  } else {
+                    window.toast?.('You do not own shares in this property.');
+                  }
                   return;
                 }
 
-                const rawShares = prompt(`How many shares do you want to sell? (1–${myShares})`);
-                if (!rawShares) return;
-                const shareCount = Number(String(rawShares).trim());
-                if (!Number.isFinite(shareCount) || shareCount < 1 || shareCount > myShares) {
-                  alert(`Nieprawidłowa liczba udziałów (1–${myShares}).`);
-                  return;
-                }
+                const shareCount = await window.Modal.prompt(
+                  `How many shares do you want to sell? (1–${myShares})`,
+                  '',
+                  { title: 'Sell Shares', inputType: 'number', min: 1, max: myShares, placeholder: 'Number of shares' }
+                );
+                if (shareCount === null) return;
 
-                const rawPrice = prompt('Enter total price for these shares ($):');
-                if (!rawPrice) return;
-                const price = String(rawPrice).trim();
-                if (!price) return;
+                const price = await window.Modal.prompt(
+                  'Enter total price for these shares:',
+                  '',
+                  { title: 'Set Price', inputType: 'number', min: 0.01, placeholder: 'Price in PLN' }
+                );
+                if (price === null) return;
 
                 try {
-                  const params = new URLSearchParams({ price, share_count: String(shareCount) });
+                  const params = new URLSearchParams({ price: String(price), share_count: String(shareCount) });
                   const resp = await fetch(`/api/house/${encodeURIComponent(d.id_fme ?? id)}/list/`, {
                     method: 'POST',
                     headers: {
@@ -623,10 +628,15 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                     body: params
                   });
                   const j = await resp.json().catch(() => ({}));
-                  if (!resp.ok || !j.ok) throw new Error(j.error || 'Listing failed');
+                  if (!resp.ok || !j.ok) {
+                    const errorCode = j.error || 'UNKNOWN_ERROR';
+                    window.Modal.showError(errorCode, j.message);
+                    return;
+                  }
+                  window.Modal.showSuccess('Success', 'Listing created successfully!');
                   showPropsFor(picked);
                 } catch (e) {
-                  alert(e.message || 'Błąd wystawiania');
+                  window.Modal.showError('UNKNOWN_ERROR', e.message || 'Failed to create listing');
                 }
                 return;
               }
@@ -639,7 +649,7 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
 
                 try {
                   buyBtn.disabled = true;
-                  buyBtn.textContent = 'Ładowanie...';
+                  buyBtn.textContent = 'Loading...';
 
                   const resp = await fetch('/api/checkout/', {
                     method: 'POST',
@@ -654,13 +664,17 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                   const j = await resp.json().catch(() => ({}));
 
                   if (!resp.ok || !j.ok) {
-                    throw new Error(j.error || 'Checkout failed');
+                    const errorCode = j.error || 'UNKNOWN_ERROR';
+                    window.Modal.showError(errorCode, j.message);
+                    buyBtn.disabled = false;
+                    buyBtn.textContent = 'Buy';
+                    return;
                   }
 
                   window.location.href = j.checkout_url;
 
                 } catch (e) {
-                  alert(e.message || 'Błąd płatności');
+                  window.Modal.showError('UNKNOWN_ERROR', e.message || 'Payment error');
                   buyBtn.disabled = false;
                   buyBtn.textContent = 'Buy';
                 }
@@ -672,10 +686,12 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                 const listingId = editBtn.dataset.listingId;
                 if (!listingId) return;
 
-                const rawPrice = prompt('New price ($):');
-                if (!rawPrice) return;
-                const price = String(rawPrice).trim();
-                if (!price) return;
+                const price = await window.Modal.prompt(
+                  'Enter new price:',
+                  '',
+                  { title: 'Edit Price', inputType: 'number', min: 0.01, placeholder: 'New price in PLN' }
+                );
+                if (price === null) return;
 
                 try {
                   const resp = await fetch(`/api/house/${encodeURIComponent(d.id_fme ?? id)}/list/`, {
@@ -685,24 +701,23 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                       'Content-Type': 'application/x-www-form-urlencoded'
                     },
                     credentials: 'same-origin',
-                    body: new URLSearchParams({ price, listing_id: listingId })
+                    body: new URLSearchParams({ price: String(price), listing_id: listingId })
                   });
                   const j = await resp.json().catch(() => ({}));
 
                   if (!resp.ok || !j.ok) {
-                    if (j.error === 'LISTING_NOT_ACTIVE') {
-                      alert('This listing is no longer active (sold or ended). The panel will refresh.');
-                      if (picked) {
-                        showPropsFor(picked);
-                      }
-                      return;
+                    const errorCode = j.error || 'UNKNOWN_ERROR';
+                    window.Modal.showError(errorCode, j.message);
+                    if (errorCode === 'LISTING_NOT_ACTIVE' && picked) {
+                      showPropsFor(picked);
                     }
-                    throw new Error(j.error || 'Update failed');
+                    return;
                   }
 
+                  window.Modal.showSuccess('Success', 'Price updated successfully!');
                   showPropsFor(picked);
                 } catch (e) {
-                  alert(e.message || 'Błąd aktualizacji ceny');
+                  window.Modal.showError('UNKNOWN_ERROR', e.message || 'Failed to update price');
                 }
                 return;
               }
@@ -711,7 +726,14 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                 ev.preventDefault();
                 const listingId = endBtn.dataset.listingId;
                 if (!listingId) return;
-                if (!confirm('Zakończyć to ogłoszenie?')) return;
+
+                const confirmed = await window.Modal.confirm(
+                  'Are you sure you want to end this listing?',
+                  'End Listing',
+                  { confirmText: 'End Listing', cancelText: 'Keep Listed' }
+                );
+                if (!confirmed) return;
+
                 try {
                   const resp = await fetch(`/api/house/${encodeURIComponent(d.id_fme ?? id)}/unlist/`, {
                     method: 'POST',
@@ -719,10 +741,15 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                     credentials: 'same-origin'
                   });
                   const j = await resp.json().catch(() => ({}));
-                  if (!resp.ok || !j.ok) throw new Error(j.error || 'Unlist failed');
+                  if (!resp.ok || !j.ok) {
+                    const errorCode = j.error || 'UNKNOWN_ERROR';
+                    window.Modal.showError(errorCode, j.message);
+                    return;
+                  }
+                  window.Modal.showSuccess('Success', 'Listing ended successfully!');
                   showPropsFor(picked);
                 } catch (e) {
-                  alert(e.message || 'Błąd zdejmowania ogłoszenia');
+                  window.Modal.showError('UNKNOWN_ERROR', e.message || 'Failed to end listing');
                 }
                 return;
               }
@@ -818,29 +845,54 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                 const occupyBtn = actionsRoot.querySelector('#occupyBtn');
                 if (occupyBtn) {
                   occupyBtn.addEventListener('click', async () => {
-                    if (!currentUserId) { alert('Zaloguj się.'); return; }
+                    if (!currentUserId) {
+                      window.Modal.showError('AUTH_REQUIRED');
+                      return;
+                    }
                     const resp = await fetch(`/api/house/${encodeURIComponent(id)}/occupy/`, {
                       method: 'POST',
                       headers: { 'X-CSRFToken': getCookie('csrftoken') },
                       credentials: 'same-origin'
                     });
                     const j = await resp.json().catch(()=>({}));
-                    if (resp.ok && j.ok) { showPropsFor(picked); } else { alert('Błąd zajmowania'); }
+                    if (resp.ok && j.ok) {
+                      window.Modal.showSuccess('Success', 'Property claimed successfully!');
+                      showPropsFor(picked);
+                    } else {
+                      const errorCode = j.error || 'UNKNOWN_ERROR';
+                      window.Modal.showError(errorCode, j.message);
+                    }
                   });
                 }
 
                 const takeoverBtn = actionsRoot.querySelector('#takeoverBtn');
                 if (takeoverBtn) {
                   takeoverBtn.addEventListener('click', async () => {
-                    if (!currentUserId) { alert('Zaloguj się.'); return; }
-                    if (!confirm('Na pewno przejąć ten dom na własność?')) return;
+                    if (!currentUserId) {
+                      window.Modal.showError('AUTH_REQUIRED');
+                      return;
+                    }
+
+                    const confirmed = await window.Modal.confirm(
+                      'Are you sure you want to take over this property?',
+                      'Takeover Property',
+                      { confirmText: 'Take Over', cancelText: 'Cancel' }
+                    );
+                    if (!confirmed) return;
+
                     const resp = await fetch(`/api/house/${encodeURIComponent(id)}/takeover/`, {
                       method: 'POST',
                       headers: { 'X-CSRFToken': getCookie('csrftoken') },
                       credentials: 'same-origin'
                     });
                     const j = await resp.json().catch(()=>({}));
-                    if (resp.ok && j.ok) { showPropsFor(picked); } else { alert(j.error || 'Błąd przejęcia'); }
+                    if (resp.ok && j.ok) {
+                      window.Modal.showSuccess('Success', 'Property taken over successfully!');
+                      showPropsFor(picked);
+                    } else {
+                      const errorCode = j.error || 'UNKNOWN_ERROR';
+                      window.Modal.showError(errorCode, j.message);
+                    }
                   });
                 }
               }

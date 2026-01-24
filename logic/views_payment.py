@@ -412,7 +412,6 @@ def handle_checkout_completed(session):
             tx.status = 'completed'
             tx.completed_at = timezone.now()
             tx.save()
-            # Send transaction confirmation emails asynchronously via Celery (with retry logic)
             send_transaction_email.delay(tx.id)
         else:
             new_tx = Transaction.objects.create(
@@ -429,7 +428,6 @@ def handle_checkout_completed(session):
                 status='completed',
                 completed_at=timezone.now(),
             )
-            # Send transaction confirmation emails asynchronously via Celery (with retry logic)
             send_transaction_email.delay(new_tx.id)
 
 

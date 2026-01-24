@@ -423,8 +423,6 @@
         window.openChatPanel("conversations", { userId, userName });
       } else if (window.toast) {
         window.toast("Chat panel not ready");
-      } else {
-        alert("Chat panel not ready");
       }
     });  // ⬅︎ domknięcie callbacku + wywołania addEventListener
 
@@ -623,8 +621,8 @@ chatBtn.addEventListener("click", () => {
   hideAvatarMenu();
   if (typeof window.openChatWithUser === "function") {
     window.openChatWithUser(userId, userName);
-  } else {
-    alert("Chat panel not ready");
+  } else if (window.toast) {
+    window.toast("Chat panel not ready");
   }
 });
 
@@ -751,16 +749,16 @@ chatBtn.addEventListener("click", () => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.ok) {
           const msg = data.error || "Send failed";
-          if (window.toast) window.toast(msg);
-          else alert(msg);
+          if (window.Modal) window.Modal.alert(msg, 'Error', 'error');
+          else if (window.toast) window.toast(msg);
           return;
         }
         inputEl.value = "";
         await loadMessages();
       } catch (e) {
         const msg = e.message || "Send failed";
-        if (window.toast) window.toast(msg);
-        else alert(msg);
+        if (window.Modal) window.Modal.alert(msg, 'Error', 'error');
+        else if (window.toast) window.toast(msg);
       }
     }
 
@@ -876,8 +874,8 @@ chatBtn.addEventListener("click", () => {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
         const msg = data.error || "Could not add friend";
-        if (window.toast) window.toast(msg);
-        else alert(msg);
+        if (window.Modal) window.Modal.alert(msg, 'Error', 'error');
+        else if (window.toast) window.toast(msg);
         return;
       }
 
@@ -885,11 +883,10 @@ chatBtn.addEventListener("click", () => {
         ? `Added ${userName} to friends`
         : `${userName} is already in your friends`;
       if (window.toast) window.toast(msg);
-      else alert(msg);
     } catch (e) {
       const msg = e && e.message ? e.message : "Error adding friend";
-      if (window.toast) window.toast(msg);
-      else alert(msg);
+      if (window.Modal) window.Modal.alert(msg, 'Error', 'error');
+      else if (window.toast) window.toast(msg);
     } finally {
       hideAvatarMenu();
     }

@@ -656,14 +656,14 @@
           sendBtn.addEventListener('click', async () => {
             const price  = (priceEl  && priceEl.value  ? priceEl.value.trim()  : '');
             const shares = (sharesEl && sharesEl.value ? sharesEl.value.trim() : '');
-            if (!price)  { alert('Podaj kwotę'); return; }
-            if (!shares) { alert('Podaj liczbę udziałów'); return; }
+            if (!price)  { window.Modal?.alert('Podaj kwotę', 'Brak danych', 'warning'); return; }
+            if (!shares) { window.Modal?.alert('Podaj liczbę udziałów', 'Brak danych', 'warning'); return; }
             try {
               await ensureStart();
               await jpost(API.offer(state.currentConvId), { price, shares });
               await openThread(state.currentConvId);
             } catch (err) {
-              alert((err && err.message) || 'Błąd wysyłania oferty');
+              window.Modal?.alert((err && err.message) || 'Błąd wysyłania oferty', 'Błąd', 'error');
             }
           });
         }
@@ -706,15 +706,15 @@
           sendBtn.addEventListener('click', async () => {
             const price  = (priceEl  && priceEl.value  ? priceEl.value.trim()  : '');
             const shares = (sharesEl && sharesEl.value ? sharesEl.value.trim() : '');
-            if (!price)  { alert('Podaj kwotę'); return; }
-            if (!shares) { alert('Podaj liczbę udziałów'); return; }
+            if (!price)  { window.Modal?.alert('Podaj kwotę', 'Brak danych', 'warning'); return; }
+            if (!shares) { window.Modal?.alert('Podaj liczbę udziałów', 'Brak danych', 'warning'); return; }
 
             try {
               await ensureStart();
               await jpost(API.offer(state.currentConvId), { price, shares });
               await openThread(state.currentConvId);
             } catch (err) {
-              alert((err && err.message) || 'Błąd wysyłania oferty');
+              window.Modal?.alert((err && err.message) || 'Błąd wysyłania oferty', 'Błąd', 'error');
             }
           });
         }
@@ -741,7 +741,7 @@
           if (input) input.value = '';
           await openThread(state.currentConvId);       // odśwież wątek
         } catch (err) {
-          alert((err && err.message) || 'Błąd wysyłania');
+          window.Modal?.alert((err && err.message) || 'Błąd wysyłania', 'Błąd', 'error');
         }
         return;
       }
@@ -752,7 +752,7 @@
     async function ensureStart() {
       const id_fme = (window.__lastPickedIdFME || '').trim();
       if (!id_fme || !state?.prepared || !state.prepared.can_message) {
-        alert('Najpierw kliknij dom i wybierz „Wyślij wiadomość”.');
+        window.Modal?.alert('Najpierw kliknij dom i wybierz „Wyślij wiadomość".', 'Wybierz dom', 'info');
         throw new Error('no-thread-start-guard');
       }
       const payload = { id_fme };
@@ -867,13 +867,13 @@
           sendPriceBtn.addEventListener('click', async () => {
             const price  = (priceEl  && priceEl.value  ? priceEl.value.trim()  : '');
             const shares = (sharesEl && sharesEl.value ? sharesEl.value.trim() : '');
-            if (!price)  { alert('Podaj kwotę'); return; }
-            if (!shares) { alert('Podaj liczbę udziałów'); return; }
+            if (!price)  { window.Modal?.alert('Podaj kwotę', 'Brak danych', 'warning'); return; }
+            if (!shares) { window.Modal?.alert('Podaj liczbę udziałów', 'Brak danych', 'warning'); return; }
             try {
               await jpost(API.offer(convId), { price, shares });
               await openThread(convId); // odśwież wątek + pasek ofert
             } catch (e) {
-              alert((e && e.message) || 'Błąd wysyłania oferty');
+              window.Modal?.alert((e && e.message) || 'Błąd wysyłania oferty', 'Błąd', 'error');
             }
           });
         }
@@ -903,7 +903,7 @@
             await jpost(API.accept(convId), {});
             await openThread(convId);
           } catch (e) {
-            alert((e && e.message) || 'Nie udało się zaakceptować oferty');
+            window.Modal?.alert((e && e.message) || 'Nie udało się zaakceptować oferty', 'Błąd', 'error');
           }
         });
       }
@@ -932,7 +932,8 @@
                   `Czy chcesz kontynuować?`
                 : `Masz już publiczne ogłoszenie. Ta zgoda je zastąpi. Kontynuować?`;
 
-              if (!confirm(msg)) {
+              const confirmed = await window.Modal?.confirm(msg, 'Zmiana ogłoszenia', { confirmText: 'Kontynuuj', cancelText: 'Anuluj' });
+              if (!confirmed) {
                 return;
               }
 
@@ -956,7 +957,7 @@
             state.threadIdx = 0;
             buildThreads();
           } catch (e) {
-            alert((e && e.message) || 'Nie udało się sfinalizować transakcji');
+            window.Modal?.alert((e && e.message) || 'Nie udało się sfinalizować transakcji', 'Błąd', 'error');
           }
         });
       }
@@ -970,7 +971,7 @@
             state.threadIdx = 0;
             buildThreads();
           } catch (e) {
-            alert((e && e.message) || 'Nie udało się zakończyć rozmowy');
+            window.Modal?.alert((e && e.message) || 'Nie udało się zakończyć rozmowy', 'Błąd', 'error');
           }
         });
       }
@@ -985,7 +986,7 @@
             input.value = '';
             await openThread(convId);
           } catch (e) {
-            alert((e && e.message) || 'Błąd wysyłania');
+            window.Modal?.alert((e && e.message) || 'Błąd wysyłania', 'Błąd', 'error');
           }
         });
       }
