@@ -51,8 +51,8 @@ def api_chat_threads(request):
             Q(sender=user, receiver=peer) | Q(sender=peer, receiver=user)
         ).order_by('-created_at').first()
 
-        # Count unread (messages from peer that are newer - simple approach)
-        unread = Message.objects.filter(sender=peer, receiver=user).count()
+        # Count unread (messages from peer that haven't been read yet)
+        unread = Message.objects.filter(sender=peer, receiver=user, read_at__isnull=True).count()
 
         threads.append({
             'user_id': peer.id,
@@ -155,6 +155,33 @@ def api_chat_send(request):
             'time': msg.created_at.isoformat(),
         }
     })
+
+
+@login_required_json
+@require_POST
+@csrf_protect
+def api_chat_mark_read(request, user_id):
+    """
+    Mark all messages from a user as read.
+    Called when opening a conversation thread.
+    """
+    from django.utils import timezone
+
+    user = request.user
+
+    try:
+        peer = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return JsonResponse({'ok': False, 'error': 'USER_NOT_FOUND'}, status=404)
+
+    # Mark all unread messages from this peer as read
+    updated = Message.objects.filter(
+        sender=peer,
+        receiver=user,
+        read_at__isnull=True
+    ).update(read_at=timezone.now())
+
+    return JsonResponse({'ok': True, 'marked': updated})
 
 
 # ═══════════════════════════════════════════════════════════════════════════

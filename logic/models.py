@@ -106,6 +106,7 @@ class Message(models.Model):
     )
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
 
 
 FRIEND_STATUS = [

@@ -94,6 +94,7 @@ urlpatterns = [
     path('api/chat/threads/', views_messages.api_chat_threads, name='api_chat_threads'),
     path('api/chat/history/<int:user_id>/', views_messages.api_chat_history, name='api_chat_history'),
     path('api/chat/send/', views_messages.api_chat_send, name='api_chat_send'),
+    path('api/chat/read/<int:user_id>/', views_messages.api_chat_mark_read, name='api_chat_mark_read'),
 
     # Friends
     path('api/friends/', views_messages.api_friends_list, name='api_friends_list'),

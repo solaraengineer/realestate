@@ -30,10 +30,13 @@
       credentials: 'same-origin',
       headers: {}
     };
-    if (method !== 'GET' && data) {
-      opts.headers['Content-Type'] = 'application/json';
+    // Always add CSRF token for non-GET requests
+    if (method !== 'GET') {
       opts.headers['X-CSRFToken'] = csrf();
-      opts.body = JSON.stringify(data);
+      if (data) {
+        opts.headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(data);
+      }
     }
     try {
       const r = await fetch(url, opts);
@@ -239,10 +242,12 @@
       html += '<div class="chat-empty">No conversations yet</div>';
     } else {
       for (const t of state.threads) {
+        const hasUnread = t.unread && t.unread > 0;
         html += `
-          <div class="chat-item" data-user-id="${t.user_id}" data-username="${t.username}">
+          <div class="chat-item ${hasUnread ? 'has-unread' : ''}" data-user-id="${t.user_id}" data-username="${t.username}">
             <div class="chat-item-name">${escHtml(t.username)}</div>
             <div class="chat-item-preview">${escHtml(t.last_message || '')}</div>
+            <span class="unread-dot"></span>
           </div>
         `;
       }
@@ -474,6 +479,66 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // UNREAD BADGE MANAGEMENT
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  let unreadPollTimer = null;
+
+  function updateMenuBadge() {
+    // Calculate total unread from threads
+    const totalUnread = state.threads.reduce((sum, t) => sum + (t.unread || 0), 0);
+
+    // Find the messages button in the menu
+    const msgBtn = document.querySelector('[data-action="messages"]');
+    if (!msgBtn) return;
+
+    // Find or create badge element
+    let badge = msgBtn.querySelector('.unread-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'unread-badge';
+      msgBtn.appendChild(badge);
+    }
+
+    // Update badge visibility
+    if (totalUnread > 0) {
+      badge.classList.add('has-unread');
+    } else {
+      badge.classList.remove('has-unread');
+    }
+  }
+
+  async function pollUnreadCount() {
+    if (!window.currentUserId) return;
+
+    try {
+      const res = await api('/api/chat/threads/');
+      if (res.ok) {
+        state.threads = res.threads || [];
+        updateMenuBadge();
+      }
+    } catch (e) {
+      // Ignore polling errors silently
+    }
+  }
+
+  function startUnreadPolling() {
+    // Initial check
+    pollUnreadCount();
+
+    // Poll every 30 seconds
+    if (unreadPollTimer) clearInterval(unreadPollTimer);
+    unreadPollTimer = setInterval(pollUnreadCount, 30000);
+  }
+
+  function stopUnreadPolling() {
+    if (unreadPollTimer) {
+      clearInterval(unreadPollTimer);
+      unreadPollTimer = null;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // DATA LOADING
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -497,6 +562,7 @@
     const res = await api('/api/chat/threads/');
     if (res.ok) {
       state.threads = res.threads || [];
+      updateMenuBadge();
     }
   }
 
@@ -537,7 +603,21 @@
     state.selectedUserName = username;
     state.activeTab = 'chats';
     await loadMessages(userId);
+
+    // Mark messages from this user as read
+    await markAsRead(userId);
+
     renderPanel();
+  }
+
+  async function markAsRead(userId) {
+    try {
+      await api(`/api/chat/read/${userId}/`, 'POST');
+      // Refresh threads to update unread counts
+      await loadThreads();
+    } catch (e) {
+      // Ignore errors silently
+    }
   }
 
   async function sendMessage(text) {
@@ -818,6 +898,7 @@
   // Export global function for inbox polling (called from menu.js on login)
   window.startChatInboxPolling = function() {
     connectWebSocket();
+    startUnreadPolling();
   };
 
   // Auto-init when DOM ready

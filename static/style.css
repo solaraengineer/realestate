@@ -1872,3 +1872,65 @@ label .input {
   display: block !important;
   animation: toastUp 0.3s var(--ease) forwards;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UNREAD MESSAGE BADGES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Badge on menu button */
+.btn[data-action="messages"] {
+  position: relative;
+}
+
+.unread-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  display: none;
+}
+
+.unread-badge.has-unread {
+  display: block;
+}
+
+/* Badge with count (optional - show number) */
+.unread-badge.has-count {
+  min-width: 16px;
+  height: 16px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+/* Chat panel thread unread indicator */
+.chat-item {
+  position: relative;
+}
+
+.chat-item .unread-dot {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  display: none;
+}
+
+.chat-item.has-unread .unread-dot {
+  display: block;
+}
+
+.chat-item.has-unread .chat-item-name {
+  font-weight: 700;
+}
