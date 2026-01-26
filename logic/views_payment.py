@@ -246,7 +246,7 @@ def api_checkout(request):
         }, status=400)
 
     try:
-        price_cents = int(listing.price * 100)  # Convert to cents/groszy
+        price_cents = int(listing.price * 100)
         platform_fee_cents = int(listing.price * PLATFORM_FEE_PERCENT * 100)
 
         idempotency_key = f"checkout_{listing_id}_{buyer.id}_{int(timezone.now().timestamp() // 300)}"
