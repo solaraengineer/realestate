@@ -251,7 +251,7 @@ def houses_free_nearby(request):
 @require_GET
 def api_my_houses(request):
     user_listings_prefetch = Prefetch(
-        'house__listing_set',
+        'house__listings',
         queryset=Listing.objects.filter(seller=request.user, status='active'),
         to_attr='user_active_listings'
     )
