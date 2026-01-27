@@ -77,7 +77,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
 
     if (btnClose) btnClose.addEventListener('click', closePanel);
 
-    // Wire up Set Viewpoint button
     const btnSetVP = document.getElementById('fpSetVP');
     if (btnSetVP) {
       btnSetVP.addEventListener('click', async () => {
@@ -87,7 +86,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
           return;
         }
 
-        // Get current camera position
         const camera = viewer.camera;
         const position = camera.position;
         const cartographic = Cesium.Cartographic.fromCartesian(position);
@@ -95,7 +93,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
         const lon = Cesium.Math.toDegrees(cartographic.longitude);
         const height = cartographic.height;
 
-        // Get house name for viewpoint name
         const houseName = titleEl?.textContent || 'Viewpoint';
         const vpName = `${houseName} - ${new Date().toLocaleTimeString()}`;
 
@@ -123,7 +120,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
           const data = await resp.json();
           if (resp.ok && data.ok) {
             if (typeof window.toast === 'function') window.toast('Viewpoint zapisany!');
-            // Refresh viewpoints panel if visible
             if (typeof window.renderViewpoints === 'function') window.renderViewpoints();
           } else {
             throw new Error(data.error || 'Failed');
@@ -135,7 +131,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
       });
     }
 
-    // Wire up Observe (Watch) button
     const btnWatch = document.getElementById('fpWatch');
     if (btnWatch) {
       btnWatch.addEventListener('click', async () => {
@@ -151,7 +146,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
           return;
         }
 
-        // Store selected house ID globally for observations
         window.__selectedHouseId = houseId;
 
         try {
@@ -171,7 +165,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
             if (typeof window.toast === 'function') {
               window.toast(data.updated ? 'Obserwacja zaktualizowana!' : 'Dodano do obserwowanych!');
             }
-            // Refresh observations panel if visible
             if (typeof window.renderObservations === 'function') window.renderObservations();
           } else {
             throw new Error(data.error || 'Failed');
@@ -641,7 +634,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                 return;
               }
 
-              // BUY - stripe checkout
               if (buyBtn) {
                 ev.preventDefault();
                 const listingId = buyBtn.dataset.listingId;
@@ -759,12 +751,9 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                 const sellerId = msgBtnOwner.dataset.sellerId;
                 if (!sellerId) return;
 
-                // Use the ChatPanel to open a conversation with the seller
                 if (typeof window.ChatPanel !== 'undefined' && window.ChatPanel.openChat) {
-                  // Close feature panel and open chat with this user
                   if (typeof closePanel === 'function') closePanel();
                   window.ChatPanel.open();
-                  // Load the conversation with the seller - need to fetch their username first
                   fetch(`/api/users/search/?q=&id=${sellerId}`, { credentials: 'same-origin' })
                     .then(r => r.json())
                     .then(data => {
@@ -778,7 +767,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                       window.ChatPanel.openChat(sellerId, `User ${sellerId}`);
                     });
                 } else {
-                  // Fallback: just open chat panel
                   const chatPanel = document.getElementById('chatPanel');
                   if (chatPanel) {
                     chatPanel.style.display = 'block';
@@ -825,8 +813,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                 }
 
               } else if (currentUserId && hasShares) {
-                // owner - no global buttons
-
               } else if (currentUserId && !hasShares && ownersArr.length > 0) {
                 actionsHtml += '<div id="houseActions">' +
                               '  <button class="btn btn-danger" id="takeoverBtn">Przejęcie</button>' +

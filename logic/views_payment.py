@@ -4,6 +4,7 @@ from functools import wraps
 from decimal import Decimal
 from django.conf import settings
 from django.db import transaction
+from django.db.models import F
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
@@ -11,6 +12,7 @@ from django.utils import timezone
 
 from .models import Listing, User, HouseOwnership, House, Transaction
 from .views_emails import send_transaction_email
+from .views_jwt import require_jwt
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -66,7 +68,7 @@ def api_stripe_status(request):
 
 
 @csrf_protect
-@login_required_json
+@require_jwt
 def api_stripe_onboard(request):
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'METHOD_NOT_ALLOWED'}, status=405)
@@ -159,7 +161,7 @@ def api_stripe_onboard_refresh(request):
 
 
 @csrf_protect
-@login_required_json
+@require_jwt
 def api_checkout(request):
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'METHOD_NOT_ALLOWED'}, status=405)
@@ -380,30 +382,35 @@ def handle_checkout_completed(session):
                 tx.save(update_fields=['status'])
             return
 
-        listing.left_shares = remaining - shares
-        if listing.left_shares == 0:
-            listing.status = 'sold'
-        listing.save()
+        new_left_shares = remaining - shares
+        if new_left_shares == 0:
+            Listing.objects.filter(id=listing_id).update(left_shares=new_left_shares, status='sold')
+        else:
+            Listing.objects.filter(id=listing_id).update(left_shares=F('left_shares') - shares)
 
         buyer_ownership, created = HouseOwnership.objects.get_or_create(
             house_id=house_id,
             user_id=buyer_id,
-            defaults={'shares': 0}
+            defaults={'shares': 0, 'bought_for': int(session.get('amount_total', 0) / 100)}
         )
-        buyer_ownership.shares += shares
-        if not buyer_ownership.bought_for:
-            buyer_ownership.bought_for = int(session.get('amount_total', 0) / 100)
-        buyer_ownership.save()
+        if not created:
+            HouseOwnership.objects.filter(id=buyer_ownership.id).update(shares=F('shares') + shares)
+            if not buyer_ownership.bought_for:
+                HouseOwnership.objects.filter(id=buyer_ownership.id).update(
+                    bought_for=int(session.get('amount_total', 0) / 100)
+                )
+        else:
+            HouseOwnership.objects.filter(id=buyer_ownership.id).update(shares=F('shares') + shares)
 
         try:
             seller_ownership = HouseOwnership.objects.select_for_update().get(
                 house_id=house_id, user_id=seller_id
             )
-            seller_ownership.shares -= shares
-            if seller_ownership.shares <= 0:
+            seller_ownership.refresh_from_db()
+            if seller_ownership.shares <= shares:
                 seller_ownership.delete()
             else:
-                seller_ownership.save()
+                HouseOwnership.objects.filter(id=seller_ownership.id).update(shares=F('shares') - shares)
         except HouseOwnership.DoesNotExist:
             pass
 

@@ -1,7 +1,3 @@
-/**
- * Get a cookie value by name.
- * Used for CSRF token retrieval.
- */
 function getCookie(name) {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
@@ -9,13 +5,8 @@ function getCookie(name) {
   return '';
 }
 
-// Expose globally for other scripts
 window.getCookie = getCookie;
 
-/**
- * Inicjalizacja akordeonu (rozwijane sekcje) wewnątrz podanego kontenera.
- * Używane m.in. dla paneli logowania/rejestracji.
- */
 function bindAccordion(containerSelector) {
   const headers = document.querySelectorAll(containerSelector + ' .section-header');
   headers.forEach(header => {
@@ -47,9 +38,6 @@ function bindAccordion(containerSelector) {
   });
 }
 
-/**
- * Ukrywa wszystkie panele boczne (oferty, aplikacja, viewpoints).
- */
 function hidePanels() {
   const panelIds = ['offersPanel', 'appPanel', 'viewpointsPanel'];
   panelIds.forEach(id => {
@@ -58,14 +46,12 @@ function hidePanels() {
   });
 }
 
-/**
- * Otwiera (pokazuje) panel o podanym ID, uprzednio ukrywając pozostałe.
- */
 function openPanel(panelId) {
   hidePanels();
   const p = document.getElementById(panelId);
   if (p) p.style.display = 'block';
 }
+
 function openPanelInMenu(panelId) {
   hidePanels();
 
@@ -73,19 +59,15 @@ function openPanelInMenu(panelId) {
   const p = document.getElementById(panelId);
   if (!menu || !p) return;
 
-  // doku-j panel w lewy slot i pokaż go
   p.classList.add('dock-left');
   p.style.display = 'block';
 
-  // schowaj całe menu
   menu.style.display = 'none';
 
-  // znajdź przycisk zamykania tego panelu
   const closer = p.querySelector(`[data-close="${panelId}"]`) ||
                  p.querySelector('.panel-close') ||
                  p.querySelector('.feature-close');
 
-  // po zamknięciu: panel znika, menu wraca
   if (closer) {
     const onClose = () => {
       p.style.display = 'none';

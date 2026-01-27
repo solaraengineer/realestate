@@ -1,11 +1,4 @@
-/**
- * Auth module with JWT token management
- * - Stores JWT in localStorage
- * - Auto-attaches JWT to all API calls
- * - Handles token refresh
- */
 const Auth = {
-    // LocalStorage key for JWT token
     TOKEN_KEY: 'jwt_token',
 
     getCookie(name) {
@@ -15,7 +8,6 @@ const Auth = {
         return '';
     },
 
-    // JWT Token management
     getToken() {
         return localStorage.getItem(this.TOKEN_KEY);
     },
@@ -32,12 +24,10 @@ const Auth = {
         localStorage.removeItem(this.TOKEN_KEY);
     },
 
-    // Check if token exists
     hasToken() {
         return !!this.getToken();
     },
 
-    // Decode JWT payload (without verification - just for reading)
     decodeToken(token) {
         if (!token) return null;
         try {
@@ -51,15 +41,12 @@ const Auth = {
         }
     },
 
-    // Check if token is expired
     isTokenExpired(token) {
         const payload = this.decodeToken(token);
         if (!payload || !payload.exp) return true;
-        // exp is in seconds, Date.now() is in milliseconds
         return (payload.exp * 1000) < Date.now();
     },
 
-    // Get user info from token
     getUserFromToken() {
         const token = this.getToken();
         if (!token) return null;
@@ -74,7 +61,6 @@ const Auth = {
 
     getErrorMessage(code, details = null) {
         const errorMap = {
-            // Auth errors
             INVALID_JSON: 'Invalid request',
             MISSING_CREDENTIALS: 'Enter email and password',
             INVALID_CREDENTIALS: 'Wrong email or password',
@@ -88,11 +74,9 @@ const Auth = {
             WEAK_PASSWORD: details && details.length ? details.join(', ') : 'Password too weak',
             WRONG_PASSWORD: 'Current password is incorrect',
             CURRENT_PASSWORD_REQUIRED: 'Enter your current password',
-            // JWT errors
             TOKEN_EXPIRED: 'Session expired, please log in again',
             INVALID_TOKEN: 'Invalid session, please log in again',
             MISSING_AUTH_HEADER: 'Authentication required',
-            // Profile errors
             USERNAME_TOO_LONG: 'Username too long (max 150 chars)',
             EMAIL_TOO_LONG: 'Email too long (max 150 chars)',
             FIRST_NAME_TOO_LONG: 'First name too long (max 30 chars)',
@@ -103,7 +87,6 @@ const Auth = {
             POSTAL_CODE_TOO_LONG: 'Postal code too long (max 10 chars)',
             COUNTRY_TOO_LONG: 'Country too long (max 20 chars)',
             VAT_NUMBER_TOO_LONG: 'VAT number too long (max 11 chars)',
-            // Chat/Friends errors
             NOT_AUTHENTICATED: 'Please log in first',
             USER_NOT_FOUND: 'User not found',
             BLOCKED: 'You are blocked by this user',
@@ -111,7 +94,6 @@ const Auth = {
             ALREADY_FRIENDS: 'Already friends with this user',
             REQUEST_PENDING: 'Friend request already pending',
             CANNOT_BLOCK_SELF: 'Cannot block yourself',
-            // House errors
             NOT_OWNER: 'You do not own this property',
             ALREADY_OCCUPIED: 'Property is already owned',
             LISTING_NOT_FOUND: 'Listing not found',
@@ -122,7 +104,6 @@ const Auth = {
         return errorMap[code] || code || 'An error occurred';
     },
 
-    // Build headers with JWT token
     getAuthHeaders(extraHeaders = {}) {
         const headers = {
             'Content-Type': 'application/json',
@@ -156,7 +137,6 @@ const Auth = {
             throw err;
         }
 
-        // Save JWT token
         if (data.token) {
             this.setToken(data.token);
         }
@@ -190,7 +170,6 @@ const Auth = {
             throw err;
         }
 
-        // Save JWT token
         if (data.token) {
             this.setToken(data.token);
         }
@@ -205,14 +184,12 @@ const Auth = {
             credentials: 'same-origin'
         });
 
-        // Clear token on logout
         this.clearToken();
 
         return r.ok;
     },
 
     async whoami() {
-        // First try JWT whoami if we have a token
         const token = this.getToken();
         if (token && !this.isTokenExpired(token)) {
             try {
@@ -231,7 +208,6 @@ const Auth = {
             }
         }
 
-        // Fallback to session whoami
         const r = await fetch('/api/auth/whoami/', {
             credentials: 'same-origin'
         });
@@ -261,7 +237,6 @@ const Auth = {
             console.warn('[Auth] Token refresh failed:', e);
         }
 
-        // Clear invalid token
         this.clearToken();
         return null;
     },
@@ -330,19 +305,17 @@ const Auth = {
     }
 };
 
-// Make getCookie globally available for other modules
 window.getCookie = Auth.getCookie.bind(Auth);
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Global fetch wrapper that auto-attaches JWT token and handles refresh
-// ═══════════════════════════════════════════════════════════════════════════
-
-// Store original fetch
 const originalFetch = window.fetch;
 
-// Override fetch to auto-attach JWT and handle token refresh
+/**
+ * Enhanced fetch wrapper with JWT auto-refresh and retry logic.
+ * - Automatically adds JWT token to API requests
+ * - Handles token expiration with automatic refresh
+ * - Retries failed requests with new token
+ */
 window.fetch = async function(url, options = {}) {
-    // Only modify API calls to our backend
     const isApiCall = typeof url === 'string' && (
         url.startsWith('/api/') ||
         url.startsWith('api/')
@@ -352,7 +325,6 @@ window.fetch = async function(url, options = {}) {
         options = options || {};
         options.headers = options.headers || {};
 
-        // Convert Headers object to plain object if needed
         if (options.headers instanceof Headers) {
             const headersObj = {};
             options.headers.forEach((value, key) => {
@@ -361,29 +333,171 @@ window.fetch = async function(url, options = {}) {
             options.headers = headersObj;
         }
 
-        // Add Authorization header if token exists and not already present
         if (!options.headers['Authorization'] && !options.headers['authorization']) {
             const token = Auth.getToken();
             if (token) {
                 options.headers['Authorization'] = `Bearer ${token}`;
             }
         }
+
+        // Add CSRF token for non-GET requests
+        if (options.method && options.method.toUpperCase() !== 'GET') {
+            if (!options.headers['X-CSRFToken']) {
+                options.headers['X-CSRFToken'] = Auth.getCookie('csrftoken');
+            }
+        }
     }
 
-    // Make the request
-    const response = await originalFetch.call(window, url, options);
+    let response = await originalFetch.call(window, url, options);
 
-    // Check for new token in response header (issued when old token expired but session valid)
     if (isApiCall) {
+        // Check for new token in response header
         const newToken = response.headers.get('X-New-Token');
         if (newToken) {
             console.log('[Auth] Received new token from server, saving...');
             Auth.setToken(newToken);
+        }
+
+        // Handle 401 errors with automatic retry
+        if (response.status === 401 && !options._retried) {
+            try {
+                const data = await response.clone().json();
+
+                // If server issued a new token, save it and retry
+                if (data.new_token) {
+                    console.log('[Auth] Token expired/missing, received new token. Retrying request...');
+                    Auth.setToken(data.new_token);
+
+                    // Update authorization header with new token
+                    options.headers = options.headers || {};
+                    options.headers['Authorization'] = `Bearer ${data.new_token}`;
+                    options._retried = true;
+
+                    // Retry the original request
+                    response = await originalFetch.call(window, url, options);
+                    return response;
+                }
+
+                // If token is expired without new token, try to refresh
+                if (data.error === 'TOKEN_EXPIRED' || data.error === 'TOKEN_REQUIRED') {
+                    console.log('[Auth] Attempting token refresh...');
+                    const refreshed = await Auth.refreshToken();
+
+                    if (refreshed) {
+                        // Update authorization header with refreshed token
+                        options.headers = options.headers || {};
+                        options.headers['Authorization'] = `Bearer ${refreshed}`;
+                        options._retried = true;
+
+                        // Retry the original request
+                        response = await originalFetch.call(window, url, options);
+                        return response;
+                    }
+                }
+
+                // Auth completely failed
+                if (data.error === 'AUTH_REQUIRED' || data.error === 'INVALID_TOKEN') {
+                    console.warn('[Auth] Authentication required. Please log in.');
+                    Auth.clearToken();
+                    // Dispatch custom event for UI to handle
+                    window.dispatchEvent(new CustomEvent('auth:required', { detail: { error: data.error } }));
+                }
+            } catch (e) {
+                console.warn('[Auth] Error parsing 401 response:', e);
+            }
         }
     }
 
     return response;
 };
 
-// Export Auth globally
+/**
+ * Make an authenticated API request with automatic retry.
+ * Use this for important operations that should retry on auth failure.
+ */
+Auth.fetchWithRetry = async function(url, options = {}, maxRetries = 2) {
+    let lastError = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            const response = await fetch(url, { ...options, _retried: attempt > 0 });
+
+            if (response.ok) {
+                return response;
+            }
+
+            // If still 401 after retries, throw
+            if (response.status === 401 && attempt === maxRetries) {
+                const data = await response.json();
+                throw new Error(data.error || 'Authentication failed');
+            }
+
+            // Other errors, don't retry
+            if (response.status !== 401) {
+                return response;
+            }
+        } catch (e) {
+            lastError = e;
+            if (attempt === maxRetries) {
+                throw e;
+            }
+        }
+    }
+
+    throw lastError || new Error('Request failed after retries');
+};
+
+/**
+ * Check if user is authenticated (has valid session or token).
+ * Tries JWT first, falls back to session.
+ */
+Auth.isAuthenticated = async function() {
+    try {
+        const data = await Auth.whoami();
+        return data && data.ok && data.user;
+    } catch (e) {
+        return false;
+    }
+};
+
+/**
+ * Ensure we have a valid token, refreshing if needed.
+ * Returns the token or null if not authenticated.
+ */
+Auth.ensureToken = async function() {
+    let token = this.getToken();
+
+    if (token && !this.isTokenExpired(token)) {
+        return token;
+    }
+
+    // Token missing or expired, try to refresh
+    if (token) {
+        const refreshed = await this.refreshToken();
+        if (refreshed) {
+            return refreshed;
+        }
+    }
+
+    // No token - check if we have a session and can get a new token
+    try {
+        const r = await originalFetch('/api/jwt/refresh/', {
+            method: 'POST',
+            credentials: 'same-origin'
+        });
+
+        if (r.ok) {
+            const data = await r.json();
+            if (data.ok && data.token) {
+                this.setToken(data.token);
+                return data.token;
+            }
+        }
+    } catch (e) {
+        console.warn('[Auth] Failed to get token from session:', e);
+    }
+
+    return null;
+};
+
 window.Auth = Auth;

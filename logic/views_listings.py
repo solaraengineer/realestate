@@ -77,7 +77,6 @@ def api_listings(request):
             'share_count': listing.share_count,
             'status': listing.status,
             'valid_from': listing.valid_from.isoformat() if listing.valid_from else None,
-            'valid_to': getattr(listing, 'valid_to', None).isoformat() if getattr(listing, 'valid_to', None) else None,
         })
 
     return JsonResponse({
@@ -118,7 +117,6 @@ def api_listing_detail(request, listing_id):
             'share_count': listing.share_count,
             'status': listing.status,
             'valid_from': listing.valid_from.isoformat() if listing.valid_from else None,
-            'valid_to': getattr(listing, 'valid_to', None).isoformat() if getattr(listing, 'valid_to', None) else None,
         }
     })
 
@@ -166,7 +164,6 @@ def api_listings_by_house(request, house_id):
             'currency': listing.currency,
             'share_count': listing.share_count,
             'valid_from': listing.valid_from.isoformat() if listing.valid_from else None,
-            'valid_to': getattr(listing, 'valid_to', None).isoformat() if getattr(listing, 'valid_to', None) else None,
         })
 
     return JsonResponse({'ok': True, 'listings': listings_data})
@@ -195,7 +192,6 @@ def api_my_listings(request):
             'share_count': listing.share_count,
             'status': listing.status,
             'valid_from': listing.valid_from.isoformat() if listing.valid_from else None,
-            'valid_to': getattr(listing, 'valid_to', None).isoformat() if getattr(listing, 'valid_to', None) else None,
         })
 
     return JsonResponse({'ok': True, 'listings': listings_data})

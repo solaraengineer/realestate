@@ -1,8 +1,3 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   SOLARA UI - Horizontal Navbar + Centered Panels
-   Updated: Bigger feature panel, cleaner boxes, draggable support
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 *, *::before, *::after {
@@ -70,10 +65,6 @@ html, body {
   z-index: 0;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   TOP NAVBAR - HORIZONTAL
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 .menu-panel {
   position: fixed;
   top: 20px;
@@ -124,10 +115,6 @@ html, body {
   margin-left: 8px;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   MENU CONTENT - HORIZONTAL
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 #menuContent {
   display: flex !important;
   align-items: center;
@@ -141,10 +128,6 @@ html, body {
 #menuContent .section-body {
   display: contents;
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   NAV BUTTONS - HORIZONTAL PILLS
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 .btn {
   padding: 8px 14px;
@@ -167,10 +150,6 @@ html, body {
 .btn:active {
   transform: scale(0.96);
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   POST LOGIN - INLINE WITH NAV
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 #postLogin {
   display: none;
@@ -201,10 +180,6 @@ html, body {
 #logoutBtn:hover {
   background: rgba(248, 113, 113, 0.25) !important;
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   ALL PANELS - CENTERED + DRAGGABLE
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 .side-panel,
 .offers-panel,
@@ -243,10 +218,6 @@ html, body {
               box-shadow 0.15s ease;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   LEFT-SIDE PANELS (My Houses, Transactions)
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 #appPanel.panel-left {
   left: 24px !important;
   top: 100px !important;
@@ -258,10 +229,6 @@ html, body {
 #appPanel.panel-left[style*="flex"] {
   transform: scale(1) !important;
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   CENTER PANELS (Offers, Auth, etc)
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 #offersPanel {
   width: 500px;
@@ -284,7 +251,6 @@ html, body {
   flex-direction: column;
 }
 
-/* Only center panels that haven't been dragged */
 .side-panel:not([data-dragged])[style*="block"],
 .side-panel:not([data-dragged])[style*="flex"],
 .offers-panel:not([data-dragged])[style*="block"],
@@ -299,7 +265,6 @@ html, body {
   transform: translate(-50%, -50%) scale(1);
 }
 
-/* Dragging state */
 .side-panel.dragging,
 .feature-panel.dragging {
   box-shadow: var(--shadow-lg), 0 0 0 2px var(--accent);
@@ -312,10 +277,6 @@ html, body {
   left: 50% !important;
   right: auto !important;
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   PANEL HEADER - DRAGGABLE HANDLE
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 .panel-header,
 .feature-header {
@@ -335,7 +296,6 @@ html, body {
   cursor: grabbing;
 }
 
-/* Drag indicator */
 .panel-header::before,
 .feature-header::before {
   content: '';
@@ -397,11 +357,6 @@ html, body {
   gap: 8px;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   FEATURE PANEL - BIGGER & CLEANER
-   Works with existing featurePanel.2025.js class names (.prop, .k, .v, .db-row)
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 #featurePanel,
 .feature-panel {
   width: 560px;
@@ -409,7 +364,6 @@ html, body {
   max-height: 85vh;
 }
 
-/* Props container */
 .props,
 #featureProps {
   padding: 20px 24px;
@@ -418,7 +372,6 @@ html, body {
   flex: 1;
 }
 
-/* Individual property rows - works with existing .prop class */
 .props .prop,
 #featureProps .prop {
   display: grid;
@@ -436,7 +389,6 @@ html, body {
   border-bottom: none;
 }
 
-/* Key/label styling */
 .props .prop .k,
 #featureProps .prop .k,
 .props .prop > div:first-child,
@@ -447,7 +399,6 @@ html, body {
   text-transform: capitalize;
 }
 
-/* Value styling */
 .props .prop > div:last-child,
 #featureProps .prop > div:last-child {
   font-size: 15px;
@@ -455,10 +406,6 @@ html, body {
   color: var(--text);
   word-break: break-word;
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   DB SECTION - Override the inline styles from JS
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 #featurePanel #dbProps {
   background: rgba(167, 139, 250, 0.08) !important;
@@ -508,10 +455,6 @@ html, body {
   color: var(--text) !important;
   word-break: break-word;
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   OWNERS LIST - Cleaner styling
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 .owners-list {
   display: flex;
@@ -577,7 +520,6 @@ html, body {
   font-weight: 500;
 }
 
-/* Owner action buttons */
 .owner-actions .btn {
   padding: 8px 14px;
   font-size: 12px;
@@ -596,7 +538,6 @@ html, body {
   color: var(--text);
 }
 
-/* Buy button - accent */
 .owner-actions .fp-owner-buy {
   background: var(--accent-bg) !important;
   border-color: rgba(167, 139, 250, 0.3) !important;
@@ -607,7 +548,6 @@ html, body {
   background: rgba(167, 139, 250, 0.25) !important;
 }
 
-/* Sell button - success */
 .owner-actions .fp-owner-sell {
   background: var(--success-bg) !important;
   border-color: rgba(74, 222, 128, 0.3) !important;
@@ -618,7 +558,6 @@ html, body {
   background: rgba(74, 222, 128, 0.25) !important;
 }
 
-/* End listing - danger */
 .owner-actions .fp-owner-end {
   background: var(--danger-bg) !important;
   border-color: rgba(248, 113, 113, 0.3) !important;
@@ -628,10 +567,6 @@ html, body {
 .owner-actions .fp-owner-end:hover {
   background: rgba(248, 113, 113, 0.25) !important;
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   HOUSE ACTIONS (Zajmij, Przejęcie, etc)
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 #houseActions {
   display: flex;
@@ -669,10 +604,6 @@ html, body {
   background: rgba(248, 113, 113, 0.25) !important;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   FEATURE ACTIONS (Bottom buttons)
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 .feature-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -689,7 +620,6 @@ html, body {
   border-radius: 10px;
 }
 
-/* Primary action button */
 .feature-actions .btn-primary,
 #fpBuy {
   background: var(--accent) !important;
@@ -703,10 +633,6 @@ html, body {
   background: #c4b5fd !important;
   border-color: #c4b5fd !important;
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   SECTIONS
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 .section {
   margin-bottom: 18px;
@@ -739,10 +665,6 @@ html, body {
   border-radius: var(--r-sm);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   VIEWPOINTS
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 #vpList {
   padding: 0 0 14px 0;
   max-height: 320px;
@@ -772,10 +694,6 @@ html, body {
   gap: 8px;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   AUTH PANEL
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 .card {
   background: var(--glass-light);
   border: 1px solid var(--border);
@@ -793,10 +711,6 @@ html, body {
 .card-body {
   padding: 18px;
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   INPUTS - BIGGER & CLEANER
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 .input {
   width: 100%;
@@ -879,10 +793,6 @@ label .input {
   text-decoration: underline;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   BUTTONS SECONDARY
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 .toggle-btn {
   display: block;
   width: 100%;
@@ -930,10 +840,6 @@ label .input {
   background: var(--glass-light);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   HOUSE/TRANSACTION ITEMS - BIGGER & CLEANER
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 .cards-list {
   display: flex;
   flex-direction: column;
@@ -962,13 +868,11 @@ label .input {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
-/* Card left side */
 .card-left {
   flex: 1;
   min-width: 0;
 }
 
-/* Card right side */
 .card-right {
   display: flex;
   flex-direction: column;
@@ -977,7 +881,6 @@ label .input {
   flex-shrink: 0;
 }
 
-/* House name */
 .house-name,
 .tx-name {
   font-size: 17px;
@@ -987,14 +890,12 @@ label .input {
   line-height: 1.3;
 }
 
-/* Shares info */
 .house-shares {
   font-size: 14px;
   color: var(--text-dim);
   margin-top: 4px;
 }
 
-/* Transaction details */
 .tx-shares {
   font-size: 14px;
   color: var(--accent);
@@ -1014,7 +915,6 @@ label .input {
   margin-top: 4px;
 }
 
-/* Status badges */
 .status-badge {
   display: inline-block;
   padding: 5px 12px;
@@ -1043,10 +943,6 @@ label .input {
   background: var(--success-bg);
   color: var(--success);
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   MY HOMES - HOUSE CARDS WITH ACTIONS
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 .house-card {
   background: var(--glass-light);
@@ -1112,7 +1008,6 @@ label .input {
   color: var(--accent);
 }
 
-/* House Actions */
 .house-actions {
   display: flex;
   gap: 8px;
@@ -1147,7 +1042,6 @@ label .input {
   cursor: not-allowed;
 }
 
-/* Go Live - Primary action */
 .btn-action.btn-go-live {
   background: var(--success-bg);
   border-color: rgba(74, 222, 128, 0.3);
@@ -1159,7 +1053,6 @@ label .input {
   background: rgba(74, 222, 128, 0.25);
 }
 
-/* Cancel Listing - Danger action */
 .btn-action.btn-cancel-listing {
   background: var(--danger-bg);
   border-color: rgba(248, 113, 113, 0.3);
@@ -1170,7 +1063,6 @@ label .input {
   background: rgba(248, 113, 113, 0.25);
 }
 
-/* Edit buttons */
 .btn-action.btn-edit-price,
 .btn-action.btn-edit-shares {
   background: var(--accent-bg);
@@ -1183,30 +1075,23 @@ label .input {
   background: rgba(167, 139, 250, 0.25);
 }
 
-/* Price display */
 .price {
   font-size: 18px;
   font-weight: 700;
   color: var(--accent);
 }
 
-/* Loading text animation */
 .loading-text {
   color: var(--text-muted);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
-/* Form label */
 .form-label {
   display: block;
   font-size: 14px;
   font-weight: 500;
   color: var(--text-dim);
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   PROFILE FORM
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 .profile-form {
   display: flex;
@@ -1267,10 +1152,6 @@ label .input {
   transform: scale(0.98);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   TOAST
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 #toast {
   position: fixed;
   bottom: 28px;
@@ -1302,10 +1183,6 @@ label .input {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   SCROLLBAR
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 ::-webkit-scrollbar {
   width: 7px;
 }
@@ -1322,10 +1199,6 @@ label .input {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--border-hover);
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   RESPONSIVE
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 @media (max-width: 900px) {
   .menu-panel {
@@ -1367,19 +1240,11 @@ label .input {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   CESIUM CLEANUP
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 .cesium-viewer-bottom,
 .cesium-widget-credits,
 .cesium-viewer-toolbar {
   display: none !important;
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   HOVER OVERLAY (on map)
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 .backdrop {
   background: var(--glass) !important;
@@ -1396,10 +1261,6 @@ label .input {
   word-break: break-word;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   LOADING STATES
-   ═══════════════════════════════════════════════════════════════════════════ */
-
 @keyframes pulse {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
@@ -1409,10 +1270,6 @@ label .input {
   animation: pulse 1.5s ease-in-out infinite;
   color: var(--text-muted);
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   UTILITY CLASSES
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 .text-accent { color: var(--accent); }
 .text-success { color: var(--success); }
@@ -1429,10 +1286,6 @@ label .input {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   ERROR MODAL SYSTEM
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 .error-modal-overlay {
   position: fixed;
@@ -1471,7 +1324,6 @@ label .input {
   transform: scale(1) translateY(0);
 }
 
-/* Modal Types */
 .error-modal.error-modal-error .error-modal-icon {
   background: var(--danger-bg);
   color: var(--danger);
@@ -1492,7 +1344,6 @@ label .input {
   color: var(--success);
 }
 
-/* Header */
 .error-modal-header {
   display: flex;
   align-items: center;
@@ -1548,7 +1399,6 @@ label .input {
   color: var(--danger);
 }
 
-/* Body */
 .error-modal-body {
   padding: 20px 24px;
 }
@@ -1567,7 +1417,6 @@ label .input {
   line-height: 1.6;
 }
 
-/* Footer */
 .error-modal-footer {
   display: flex;
   gap: 12px;
@@ -1608,7 +1457,6 @@ label .input {
   border-color: #c4b5fd;
 }
 
-/* Success type button */
 .error-modal-success .error-modal-btn-primary {
   background: var(--success);
   border-color: var(--success);
@@ -1618,11 +1466,6 @@ label .input {
   background: #6ee7a0;
   border-color: #6ee7a0;
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   UNIFIED MODAL SYSTEM (modal.js)
-   Replaces alert(), confirm(), prompt()
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 .modal-overlay {
   position: fixed;
@@ -1661,7 +1504,6 @@ label .input {
   transform: scale(1) translateY(0);
 }
 
-/* Modal Header */
 .modal-header {
   display: flex;
   align-items: center;
@@ -1721,7 +1563,6 @@ label .input {
   color: var(--danger);
 }
 
-/* Modal Body */
 .modal-body {
   padding: 18px 24px;
 }
@@ -1746,7 +1587,6 @@ label .input {
   display: block;
 }
 
-/* Modal Input */
 .modal-input-wrapper {
   margin-top: 16px;
 }
@@ -1784,7 +1624,6 @@ label .input {
   display: none;
 }
 
-/* Modal Footer */
 .modal-footer {
   display: flex;
   gap: 10px;
@@ -1828,7 +1667,6 @@ label .input {
   background: #c4b5fd;
 }
 
-/* Modal Type Variants */
 .modal-error .modal-icon {
   background: var(--danger-bg);
   color: var(--danger);
@@ -1867,17 +1705,11 @@ label .input {
   color: var(--text-dim);
 }
 
-/* Toast Visibility Class */
 #toast.toast-visible {
   display: block !important;
   animation: toastUp 0.3s var(--ease) forwards;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   UNREAD MESSAGE BADGES
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-/* Badge on menu button */
 .btn[data-action="messages"] {
   position: relative;
 }
@@ -1897,7 +1729,6 @@ label .input {
   display: block;
 }
 
-/* Badge with count (optional - show number) */
 .unread-badge.has-count {
   min-width: 16px;
   height: 16px;
@@ -1910,7 +1741,6 @@ label .input {
   padding: 0 4px;
 }
 
-/* Chat panel thread unread indicator */
 .chat-item {
   position: relative;
 }

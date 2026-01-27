@@ -8,7 +8,6 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings.settings")
 
 django_asgi_app = get_asgi_application()
 
-# import routing z appki logic (utworzymy ten plik za chwilę)
 import logic.routing
 
 application = ProtocolTypeRouter(

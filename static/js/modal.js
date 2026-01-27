@@ -1,18 +1,7 @@
-/**
- * Unified Modal System
- * Replaces alert(), confirm(), and prompt() with beautiful modals
- * Also provides toast notifications and error modals
- */
-
 (function() {
   'use strict';
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ERROR MESSAGE DEFINITIONS
-  // ═══════════════════════════════════════════════════════════════════════════
-
   const ERROR_DEFINITIONS = {
-    // Buyer Stripe Errors
     'BUYER_NOT_ONBOARDED': {
       title: 'Stripe Not Configured',
       message: 'You need to set up Stripe before you can make purchases.',
@@ -33,8 +22,6 @@
       details: 'Please try again in a few moments. If the problem persists, contact support.',
       type: 'error'
     },
-
-    // Seller Stripe Errors
     'SELLER_NOT_ONBOARDED': {
       title: 'Seller Payment Not Set Up',
       message: 'The seller has not configured their payment account.',
@@ -59,8 +46,6 @@
       details: 'Please try again later or contact the seller directly.',
       type: 'error'
     },
-
-    // Listing Errors
     'LISTING_NOT_FOUND': {
       title: 'Listing Not Found',
       message: 'This listing no longer exists.',
@@ -91,8 +76,6 @@
       details: 'End the listing first, then make your changes.',
       type: 'warning'
     },
-
-    // Ownership Errors
     'NOT_OWNER': {
       title: 'Not an Owner',
       message: "You don't own shares in this property.",
@@ -111,8 +94,6 @@
       details: 'You can only claim empty properties.',
       type: 'info'
     },
-
-    // Validation Errors
     'INVALID_PRICE': {
       title: 'Invalid Price',
       message: 'Please enter a valid price.',
@@ -143,8 +124,6 @@
       details: 'Reduce the number of shares to match your ownership.',
       type: 'warning'
     },
-
-    // Authentication Errors
     'AUTH_REQUIRED': {
       title: 'Login Required',
       message: 'You need to be logged in to do this.',
@@ -159,8 +138,6 @@
       type: 'warning',
       action: { label: 'Log In', id: 'goto-login' }
     },
-
-    // General Errors
     'INVALID_JSON': {
       title: 'Request Error',
       message: 'There was a problem with your request.',
@@ -180,10 +157,6 @@
       type: 'error'
     }
   };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ICONS
-  // ═══════════════════════════════════════════════════════════════════════════
 
   const ICONS = {
     error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -216,17 +189,9 @@
     </svg>`
   };
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MODAL STATE
-  // ═══════════════════════════════════════════════════════════════════════════
-
   let modalElement = null;
   let currentResolve = null;
   let currentReject = null;
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CREATE MODAL DOM
-  // ═══════════════════════════════════════════════════════════════════════════
 
   function ensureModal() {
     if (modalElement) return;
@@ -258,7 +223,6 @@
     document.body.insertAdjacentHTML('beforeend', html);
     modalElement = document.getElementById('unifiedModal');
 
-    // Event listeners
     document.getElementById('modalClose').addEventListener('click', () => handleClose(false));
     document.getElementById('modalCancel').addEventListener('click', () => handleClose(false));
     document.getElementById('modalConfirm').addEventListener('click', handleConfirm);
@@ -269,7 +233,6 @@
 
     document.addEventListener('keydown', handleKeydown);
 
-    // Input enter key
     document.getElementById('modalInput').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -302,11 +265,9 @@
     const input = document.getElementById('modalInput');
     const errorEl = document.getElementById('modalInputError');
 
-    // If it's an input modal, return the value
     if (inputWrapper && inputWrapper.style.display !== 'none') {
       const value = input.value.trim();
 
-      // Validate if needed
       if (input.dataset.required === 'true' && !value) {
         errorEl.textContent = 'This field is required';
         errorEl.style.display = 'block';
@@ -344,13 +305,8 @@
       return;
     }
 
-    // Regular confirm
     handleClose(true);
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SHOW MODAL
-  // ═══════════════════════════════════════════════════════════════════════════
 
   function showModal(options) {
     ensureModal();
@@ -367,18 +323,15 @@
       action = null
     } = options;
 
-    // Set content
     document.getElementById('modalIcon').innerHTML = ICONS[type] || ICONS.info;
     document.getElementById('modalTitle').textContent = title;
     document.getElementById('modalMessage').textContent = message;
     document.getElementById('modalDetails').textContent = details;
     document.getElementById('modalDetails').style.display = details ? 'block' : 'none';
 
-    // Set type class
     const container = modalElement.querySelector('.modal-container');
     container.className = `modal-container modal-${type}`;
 
-    // Handle input
     const inputWrapper = document.getElementById('modalInputWrapper');
     const inputEl = document.getElementById('modalInput');
     const errorEl = document.getElementById('modalInputError');
@@ -399,7 +352,6 @@
       inputWrapper.style.display = 'none';
     }
 
-    // Handle buttons
     const cancelBtn = document.getElementById('modalCancel');
     const confirmBtn = document.getElementById('modalConfirm');
 
@@ -407,7 +359,6 @@
     cancelBtn.textContent = cancelText;
     confirmBtn.textContent = confirmText;
 
-    // Handle action button
     if (action && action.id) {
       confirmBtn.dataset.actionId = action.id;
       confirmBtn.textContent = action.label || confirmText;
@@ -415,7 +366,6 @@
       delete confirmBtn.dataset.actionId;
     }
 
-    // Show modal
     modalElement.classList.add('visible');
     document.body.style.overflow = 'hidden';
 
@@ -425,13 +375,6 @@
     });
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // PUBLIC API
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  /**
-   * Show an alert modal (replaces alert())
-   */
   async function alert(message, title, type = 'info') {
     return showModal({
       type,
@@ -442,9 +385,6 @@
     });
   }
 
-  /**
-   * Show a confirm modal (replaces confirm())
-   */
   async function confirm(message, title, options = {}) {
     const result = await showModal({
       type: options.type || 'question',
@@ -458,9 +398,6 @@
     return result === true;
   }
 
-  /**
-   * Show a prompt modal (replaces prompt())
-   */
   async function prompt(message, defaultValue = '', options = {}) {
     const result = await showModal({
       type: 'input',
@@ -481,9 +418,6 @@
     return result;
   }
 
-  /**
-   * Show an error modal with predefined error codes
-   */
   function showError(errorCode, customMessage) {
     const def = ERROR_DEFINITIONS[errorCode] || {
       title: 'Error',
@@ -505,7 +439,6 @@
       showCancel: false,
       action: def.action
     }).then(result => {
-      // Handle special actions
       if (result && def.action?.id) {
         switch (def.action.id) {
           case 'goto-settings':
@@ -523,9 +456,6 @@
     });
   }
 
-  /**
-   * Show a success modal
-   */
   function showSuccess(title, message, details) {
     return showModal({
       type: 'success',
@@ -537,24 +467,14 @@
     });
   }
 
-  /**
-   * Get user-friendly message for error code
-   */
   function getMessage(errorCode, fallback) {
     const def = ERROR_DEFINITIONS[errorCode];
     return def ? def.message : (fallback || errorCode || 'An error occurred');
   }
 
-  /**
-   * Close the modal
-   */
   function close() {
     handleClose(false);
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // TOAST NOTIFICATIONS
-  // ═══════════════════════════════════════════════════════════════════════════
 
   function toast(message, duration = 3000) {
     let toastEl = document.getElementById('toast');
@@ -578,10 +498,6 @@
     }, duration);
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // EXPORT
-  // ═══════════════════════════════════════════════════════════════════════════
-
   window.Modal = {
     alert,
     confirm,
@@ -593,7 +509,6 @@
     toast
   };
 
-  // Backwards compatibility
   window.ErrorModal = {
     show: showError,
     close,
@@ -602,7 +517,6 @@
     definitions: ERROR_DEFINITIONS
   };
 
-  // Also expose toast globally
   window.toast = toast;
 
   console.log('[Modal] Unified modal system loaded');

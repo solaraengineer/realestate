@@ -5,7 +5,6 @@ def get_user_shares(house, user) -> int:
     return ho.shares if ho else 0
 
 def get_owners(house):
-    """Zwraca listę (user, shares) dla danego domu."""
     return list(
         HouseOwnership.objects
         .filter(house=house)
@@ -20,7 +19,6 @@ def is_fully_owned_by(house, user) -> bool:
     return get_user_shares(house, user) == total
 
 def get_main_owner(house):
-    """Największy udziałowiec."""
     return (
         HouseOwnership.objects
         .filter(house=house)

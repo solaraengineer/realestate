@@ -12,7 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from .forms import LoginForm, RegisterForm
-from .views_jwt import generate_jwt_token
+from .views_jwt import generate_jwt_token, require_jwt
 from .views_emails import send_welcome_email
 
 User = get_user_model()
@@ -51,8 +51,6 @@ def api_login(request):
         return JsonResponse({"ok": False, "error": "INACTIVE"}, status=403)
 
     auth_login(request, user)
-
-    # Generate JWT token
     token = generate_jwt_token(user)
 
     return JsonResponse({
@@ -77,27 +75,25 @@ def api_register(request):
 
     form = RegisterForm(data)
     if not form.is_valid():
-        if 'PASSWORD_MISMATCH' in str(form.errors):
+        errors_str = str(form.errors)
+        if 'PASSWORD_MISMATCH' in errors_str:
             return JsonResponse({"ok": False, "error": "PASSWORD_MISMATCH"}, status=400)
+        if 'EMAIL_EXISTS' in errors_str:
+            return JsonResponse({"ok": False, "error": "EMAIL_EXISTS"}, status=400)
+        if 'USERNAME_EXISTS' in errors_str:
+            return JsonResponse({"ok": False, "error": "USERNAME_EXISTS"}, status=400)
+        return JsonResponse({"ok": False, "error": "VALIDATION_ERROR"}, status=400)
 
     cd = form.cleaned_data
     username = cd['username']
     email = cd['email']
     password = cd['password']
 
-    if User.objects.filter(email__iexact=email).exists():
-        return JsonResponse({"ok": False, "error": "EMAIL_EXISTS"}, status=400)
-
-    if User.objects.filter(username__iexact=username).exists():
-        return JsonResponse({"ok": False, "error": "USERNAME_EXISTS"}, status=400)
-
     user = User.objects.create_user(username=username, email=email, password=password)
     auth_login(request, user)
 
-    # Generate JWT token
     token = generate_jwt_token(user)
 
-    # Send welcome email asynchronously via Celery
     send_welcome_email.delay(user.id)
 
     return JsonResponse({
@@ -172,7 +168,7 @@ def super_clean(val, max_len=255):
 
 
 @csrf_protect
-@login_required
+@require_jwt
 def api_profile_update(request):
     if request.method == 'GET':
         user = request.user

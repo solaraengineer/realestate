@@ -1,21 +1,18 @@
-"""
-Simple Chat API - DMs, Friends, Block
-"""
 import json
 from functools import wraps
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_GET, require_POST
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Q, Max, Count, OuterRef, Subquery
 
 from .models import Message, Friend
-
+from .views_jwt import require_jwt
+from django.utils import timezone
 User = get_user_model()
 
 
 def login_required_json(view_func):
-    """Decorator that returns JSON error instead of redirecting for unauthenticated users."""
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -24,45 +21,42 @@ def login_required_json(view_func):
     return wrapper
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# MESSAGES - Simple DM
-# ═══════════════════════════════════════════════════════════════════════════
-
 @login_required_json
 @require_GET
 def api_chat_threads(request):
-    """
-    Get list of chat threads (unique conversations).
-    Returns users you've messaged with.
-    """
     user = request.user
 
-    # Get all users we've exchanged messages with
     sent = Message.objects.filter(sender=user).values_list('receiver', flat=True)
     received = Message.objects.filter(receiver=user).values_list('sender', flat=True)
 
     peer_ids = set(sent) | set(received)
-    peers = User.objects.filter(id__in=peer_ids)
+
+    last_message_subquery = Message.objects.filter(
+        Q(sender=user, receiver_id=OuterRef('id')) | Q(sender_id=OuterRef('id'), receiver=user)
+    ).order_by('-created_at')
+
+    unread_subquery = Message.objects.filter(
+        sender_id=OuterRef('id'),
+        receiver=user,
+        read_at__isnull=True
+    ).values('sender_id').annotate(cnt=Count('id')).values('cnt')
+
+    peers = User.objects.filter(id__in=peer_ids).annotate(
+        last_msg_content=Subquery(last_message_subquery.values('content')[:1]),
+        last_msg_time=Subquery(last_message_subquery.values('created_at')[:1]),
+        unread_count=Subquery(unread_subquery)
+    )
 
     threads = []
     for peer in peers:
-        # Get last message
-        last_msg = Message.objects.filter(
-            Q(sender=user, receiver=peer) | Q(sender=peer, receiver=user)
-        ).order_by('-created_at').first()
-
-        # Count unread (messages from peer that haven't been read yet)
-        unread = Message.objects.filter(sender=peer, receiver=user, read_at__isnull=True).count()
-
         threads.append({
             'user_id': peer.id,
             'username': peer.username,
-            'last_message': last_msg.content[:50] if last_msg else '',
-            'last_time': last_msg.created_at.isoformat() if last_msg else None,
-            'unread': unread,
+            'last_message': (peer.last_msg_content or '')[:50],
+            'last_time': peer.last_msg_time.isoformat() if peer.last_msg_time else None,
+            'unread': peer.unread_count or 0,
         })
 
-    # Sort by last message time
     threads.sort(key=lambda x: x['last_time'] or '', reverse=True)
 
     return JsonResponse({'ok': True, 'threads': threads})
@@ -71,9 +65,6 @@ def api_chat_threads(request):
 @login_required_json
 @require_GET
 def api_chat_history(request, user_id):
-    """
-    Get message history with a specific user.
-    """
     user = request.user
 
     try:
@@ -81,7 +72,6 @@ def api_chat_history(request, user_id):
     except User.DoesNotExist:
         return JsonResponse({'ok': False, 'error': 'USER_NOT_FOUND'}, status=404)
 
-    # Check if blocked
     if Friend.objects.filter(user=peer, friend=user, status='blocked').exists():
         return JsonResponse({'ok': False, 'error': 'BLOCKED'}, status=403)
 
@@ -107,13 +97,10 @@ def api_chat_history(request, user_id):
     })
 
 
-@login_required_json
+@require_jwt
 @require_POST
 @csrf_protect
 def api_chat_send(request):
-    """
-    Send a message to a user.
-    """
     user = request.user
 
     try:
@@ -137,7 +124,6 @@ def api_chat_send(request):
     if receiver.id == user.id:
         return JsonResponse({'ok': False, 'error': 'CANNOT_MESSAGE_SELF'}, status=400)
 
-    # Check if blocked by receiver
     if Friend.objects.filter(user=receiver, friend=user, status='blocked').exists():
         return JsonResponse({'ok': False, 'error': 'BLOCKED'}, status=403)
 
@@ -157,16 +143,10 @@ def api_chat_send(request):
     })
 
 
-@login_required_json
+@require_jwt
 @require_POST
 @csrf_protect
 def api_chat_mark_read(request, user_id):
-    """
-    Mark all messages from a user as read.
-    Called when opening a conversation thread.
-    """
-    from django.utils import timezone
-
     user = request.user
 
     try:
@@ -174,7 +154,6 @@ def api_chat_mark_read(request, user_id):
     except User.DoesNotExist:
         return JsonResponse({'ok': False, 'error': 'USER_NOT_FOUND'}, status=404)
 
-    # Mark all unread messages from this peer as read
     updated = Message.objects.filter(
         sender=peer,
         receiver=user,
@@ -184,21 +163,12 @@ def api_chat_mark_read(request, user_id):
     return JsonResponse({'ok': True, 'marked': updated})
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# FRIENDS
-# ═══════════════════════════════════════════════════════════════════════════
-
 @login_required_json
 @require_GET
 def api_friends_list(request):
-    """
-    Get friends list (accepted friends).
-    """
     user = request.user
 
-    # Friends where I sent request and it was accepted
     sent = Friend.objects.filter(user=user, status='accepted').select_related('friend')
-    # Friends where they sent request and I accepted
     received = Friend.objects.filter(friend=user, status='accepted').select_related('user')
 
     friends = []
@@ -219,9 +189,6 @@ def api_friends_list(request):
 @login_required_json
 @require_GET
 def api_friends_pending(request):
-    """
-    Get pending friend requests (received).
-    """
     user = request.user
 
     pending = Friend.objects.filter(friend=user, status='pending').select_related('user')
@@ -238,13 +205,10 @@ def api_friends_pending(request):
     return JsonResponse({'ok': True, 'requests': requests})
 
 
-@login_required_json
+@require_jwt
 @require_POST
 @csrf_protect
 def api_friends_add(request):
-    """
-    Send a friend request.
-    """
     user = request.user
 
     try:
@@ -265,7 +229,6 @@ def api_friends_add(request):
     if friend.id == user.id:
         return JsonResponse({'ok': False, 'error': 'CANNOT_ADD_SELF'}, status=400)
 
-    # Check if already friends or pending
     existing = Friend.objects.filter(
         Q(user=user, friend=friend) | Q(user=friend, friend=user)
     ).first()
@@ -283,13 +246,10 @@ def api_friends_add(request):
     return JsonResponse({'ok': True})
 
 
-@login_required_json
+@require_jwt
 @require_POST
 @csrf_protect
 def api_friends_accept(request):
-    """
-    Accept a friend request.
-    """
     user = request.user
 
     try:
@@ -319,13 +279,10 @@ def api_friends_accept(request):
     return JsonResponse({'ok': True})
 
 
-@login_required_json
+@require_jwt
 @require_POST
 @csrf_protect
 def api_friends_remove(request):
-    """
-    Remove a friend.
-    """
     user = request.user
 
     try:
@@ -338,7 +295,6 @@ def api_friends_remove(request):
     if not friend_id:
         return JsonResponse({'ok': False, 'error': 'MISSING_USER_ID'}, status=400)
 
-    # Delete friendship in both directions
     Friend.objects.filter(
         Q(user=user, friend_id=friend_id) | Q(user_id=friend_id, friend=user)
     ).delete()
@@ -346,16 +302,9 @@ def api_friends_remove(request):
     return JsonResponse({'ok': True})
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# BLOCK
-# ═══════════════════════════════════════════════════════════════════════════
-
 @login_required_json
 @require_GET
 def api_blocked_list(request):
-    """
-    Get list of blocked users.
-    """
     user = request.user
 
     blocked = Friend.objects.filter(user=user, status='blocked').select_related('friend')
@@ -370,13 +319,10 @@ def api_blocked_list(request):
     return JsonResponse({'ok': True, 'blocked': users})
 
 
-@login_required_json
+@require_jwt
 @require_POST
 @csrf_protect
 def api_block_user(request):
-    """
-    Block a user.
-    """
     user = request.user
 
     try:
@@ -397,24 +343,19 @@ def api_block_user(request):
     if to_block.id == user.id:
         return JsonResponse({'ok': False, 'error': 'CANNOT_BLOCK_SELF'}, status=400)
 
-    # Remove any existing friendship
     Friend.objects.filter(
         Q(user=user, friend=to_block) | Q(user=to_block, friend=user)
     ).delete()
 
-    # Create block
     Friend.objects.create(user=user, friend=to_block, status='blocked')
 
     return JsonResponse({'ok': True})
 
 
-@login_required_json
+@require_jwt
 @require_POST
 @csrf_protect
 def api_unblock_user(request):
-    """
-    Unblock a user.
-    """
     user = request.user
 
     try:
@@ -432,16 +373,9 @@ def api_unblock_user(request):
     return JsonResponse({'ok': True})
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# USER SEARCH (for starting new chats)
-# ═══════════════════════════════════════════════════════════════════════════
-
 @login_required_json
 @require_GET
 def api_users_search(request):
-    """
-    Search for users by username.
-    """
     query = request.GET.get('q', '').strip()
 
     if len(query) < 2:

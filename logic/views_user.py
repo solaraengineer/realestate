@@ -2,6 +2,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, Http404
 from django.views.decorators.http import require_GET
 from django.contrib.auth import get_user_model
+from django.db.models import Prefetch
+from logic.models import Transaction
 
 from logic.models import House, Listing, HouseOwnership
 
@@ -16,7 +18,6 @@ def get_house_or_404(id_fme: str):
 
 
 def login_required_json(view_func):
-    """Decorator that returns JSON 401 instead of redirecting."""
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
             return JsonResponse({"ok": False, "error": "NOT_AUTHENTICATED"}, status=401)
@@ -26,7 +27,6 @@ def login_required_json(view_func):
 
 @require_GET
 def house_detail(request, id_fme: str):
-    """Get house info with owners and listings."""
     try:
         h = House.objects.get(id_fme=id_fme)
     except House.DoesNotExist:
@@ -43,7 +43,7 @@ def house_detail(request, id_fme: str):
     lat = _num(getattr(h, "lat", None)) or _num(a.get("FME_lat")) or _num(a.get("lat"))
     lon = _num(getattr(h, "lon", None)) or _num(a.get("FME_lon")) or _num(a.get("lon"))
 
-    active_listings = list(Listing.objects.filter(house=h, status='active'))
+    active_listings = list(Listing.objects.filter(house=h, status='active').select_related('seller'))
 
     status = h.status or 'free'
 
@@ -74,6 +74,7 @@ def house_detail(request, id_fme: str):
         owners_data.append({
             "user_id": u.id,
             "username": username,
+            "email": u.email,
             "shares": ho.shares,
             "percent": round(percent, 2) if percent is not None else None,
         })
@@ -86,9 +87,7 @@ def house_detail(request, id_fme: str):
         main = max(owners_data, key=lambda o: o.get("shares", 0))
         main_owner_id = main["user_id"]
         owner_username = main["username"]
-        owner_user = User.objects.filter(id=main_owner_id).first()
-        if owner_user:
-            owner_email = owner_user.email
+        owner_email = main.get("email")
 
     if not active_listings:
         if not owners_data:
@@ -100,7 +99,7 @@ def house_detail(request, id_fme: str):
 
     listings_data = []
     for lst in active_listings:
-        seller_user = User.objects.filter(id=lst.seller_id).first()
+        seller_user = lst.seller
         listings_data.append({
             "id": str(lst.id),
             "seller_id": lst.seller_id,
@@ -138,7 +137,6 @@ def house_detail(request, id_fme: str):
 @login_required_json
 @require_GET
 def listings_nearby(request):
-    """Get active listings sorted by price (simple version)."""
     try:
         page = int(request.GET.get("page", "1"))
     except ValueError:
@@ -162,7 +160,6 @@ def listings_nearby(request):
         except ValueError:
             pass
 
-    # Simple pagination
     page_size = 20
     total_results = qs.count()
     start = (page - 1) * page_size
@@ -206,7 +203,6 @@ def listings_nearby(request):
 @login_required_json
 @require_GET
 def houses_free_nearby(request):
-    """Get unowned houses (simple version without distance calc)."""
     try:
         page = int(request.GET.get("page", "1"))
     except ValueError:
@@ -234,7 +230,6 @@ def houses_free_nearby(request):
             pass
 
         results.append({
-            "id": str(h.id) if hasattr(h, 'id') else h.id_fme,
             "id_fme": h.id_fme,
             "name": h.name or h.id_fme,
             "lat": h.lat,
@@ -255,14 +250,20 @@ def houses_free_nearby(request):
 @login_required_json
 @require_GET
 def api_my_houses(request):
-    ownerships = HouseOwnership.objects.filter(user=request.user).select_related('house')
+    user_listings_prefetch = Prefetch(
+        'house__listing_set',
+        queryset=Listing.objects.filter(seller=request.user, status='active'),
+        to_attr='user_active_listings'
+    )
+    ownerships = HouseOwnership.objects.filter(user=request.user).select_related('house').prefetch_related(user_listings_prefetch)
 
     houses = []
     for o in ownerships:
         h = o.house
         total = h.total_shares or 1
 
-        listing = Listing.objects.filter(house=h, seller=request.user, status='active').first()
+        user_listings = getattr(h, 'user_active_listings', [])
+        listing = user_listings[0] if user_listings else None
 
         houses.append({
             "id_fme": h.id_fme,
@@ -285,12 +286,9 @@ def api_my_houses(request):
 @login_required_json
 @require_GET
 def api_my_transactions(request):
-    """Get user's transaction history (purchases and sales) from Transaction model."""
-    from logic.models import Transaction
 
     user = request.user
 
-    # Get all completed transactions where user is buyer or seller
     transactions_as_buyer = Transaction.objects.filter(
         buyer=user,
         status='completed'
@@ -302,8 +300,6 @@ def api_my_transactions(request):
     ).select_related('house', 'buyer', 'listing')
 
     transactions = []
-
-    # Add purchases (user was buyer)
     for tx in transactions_as_buyer:
         h = tx.house
         seller = tx.seller
@@ -323,7 +319,6 @@ def api_my_transactions(request):
             "status": tx.status,
         })
 
-    # Add sales (user was seller)
     for tx in transactions_as_seller:
         h = tx.house
         buyer = tx.buyer
@@ -343,7 +338,6 @@ def api_my_transactions(request):
             "status": tx.status,
         })
 
-    # Sort by date, most recent first
     transactions.sort(key=lambda x: x.get('created_at') or '', reverse=True)
 
     return JsonResponse({"ok": True, "transactions": transactions})

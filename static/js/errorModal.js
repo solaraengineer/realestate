@@ -1,19 +1,7 @@
-/**
- * Error Modal System
- * Provides clear, user-friendly error messages with actionable guidance
- */
-
 (function() {
   'use strict';
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ERROR MESSAGE DEFINITIONS
-  // ═══════════════════════════════════════════════════════════════════════════
-
   const ERROR_DEFINITIONS = {
-    // ─────────────────────────────────────────────────────────────────────────
-    // BUYER STRIPE ERRORS
-    // ─────────────────────────────────────────────────────────────────────────
     'BUYER_NOT_ONBOARDED': {
       title: 'Stripe Not Configured',
       message: 'You need to set up Stripe before you can make purchases.',
@@ -23,7 +11,6 @@
         label: 'Go to Settings',
         handler: () => {
           window.ErrorModal.close();
-          // Trigger profile panel
           const profileBtn = document.querySelector('[data-action="profile"]');
           if (profileBtn) profileBtn.click();
         }
@@ -49,10 +36,6 @@
       details: 'Please try again in a few moments. If the problem persists, contact support.',
       type: 'error'
     },
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // SELLER STRIPE ERRORS
-    // ─────────────────────────────────────────────────────────────────────────
     'SELLER_NOT_ONBOARDED': {
       title: 'Seller Payment Not Set Up',
       message: 'The seller has not configured their payment account.',
@@ -77,10 +60,6 @@
       details: 'Please try again later or contact the seller directly.',
       type: 'error'
     },
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // LISTING ERRORS
-    // ─────────────────────────────────────────────────────────────────────────
     'LISTING_NOT_FOUND': {
       title: 'Listing Not Found',
       message: 'This listing no longer exists.',
@@ -111,10 +90,6 @@
       details: 'To change the share count, first end the listing, make your changes, then create a new listing.',
       type: 'warning'
     },
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // OWNERSHIP ERRORS
-    // ─────────────────────────────────────────────────────────────────────────
     'NOT_OWNER': {
       title: 'Not an Owner',
       message: "You don't own shares in this property.",
@@ -133,10 +108,6 @@
       details: 'You can only claim empty properties.',
       type: 'info'
     },
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // SHARE/PRICE VALIDATION ERRORS
-    // ─────────────────────────────────────────────────────────────────────────
     'INVALID_PRICE': {
       title: 'Invalid Price',
       message: 'Please enter a valid price.',
@@ -173,10 +144,6 @@
       details: 'Reduce the number of shares to match your ownership.',
       type: 'warning'
     },
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // AUTHENTICATION ERRORS
-    // ─────────────────────────────────────────────────────────────────────────
     'AUTH_REQUIRED': {
       title: 'Login Required',
       message: 'You need to be logged in to do this.',
@@ -207,10 +174,6 @@
         }
       }
     },
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // GENERAL ERRORS
-    // ─────────────────────────────────────────────────────────────────────────
     'INVALID_JSON': {
       title: 'Request Error',
       message: 'There was a problem with your request.',
@@ -237,12 +200,7 @@
     }
   };
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MODAL CREATION
-  // ═══════════════════════════════════════════════════════════════════════════
-
   function createModal() {
-    // Check if modal already exists
     if (document.getElementById('errorModal')) return;
 
     const modalHTML = `
@@ -267,24 +225,18 @@
 
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-    // Bind close handlers
     document.getElementById('errorModalClose').addEventListener('click', close);
     document.getElementById('errorModalDismiss').addEventListener('click', close);
     document.getElementById('errorModal').addEventListener('click', (e) => {
       if (e.target.id === 'errorModal') close();
     });
 
-    // Close on Escape
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && document.getElementById('errorModal').classList.contains('visible')) {
         close();
       }
     });
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MODAL FUNCTIONS
-  // ═══════════════════════════════════════════════════════════════════════════
 
   function getIcon(type) {
     switch (type) {
@@ -325,7 +277,6 @@
     const detailsEl = document.getElementById('errorModalDetails');
     const actionBtn = document.getElementById('errorModalAction');
 
-    // Get error definition or create default
     const def = ERROR_DEFINITIONS[errorCode] || {
       title: 'Error',
       message: customMessage || errorCode || 'An unexpected error occurred.',
@@ -333,21 +284,17 @@
       type: 'error'
     };
 
-    // If we have a custom message and no matching definition, use it
     if (!ERROR_DEFINITIONS[errorCode] && customMessage) {
       def.message = customMessage;
     }
 
-    // Set type class
     modal.querySelector('.error-modal').className = `error-modal error-modal-${def.type || 'error'}`;
 
-    // Set content
     iconEl.innerHTML = getIcon(def.type);
     titleEl.textContent = def.title;
     messageEl.textContent = def.message;
     detailsEl.textContent = def.details;
 
-    // Handle action button
     if (def.action) {
       actionBtn.textContent = def.action.label;
       actionBtn.style.display = 'block';
@@ -357,7 +304,6 @@
       actionBtn.onclick = null;
     }
 
-    // Show modal
     modal.classList.add('visible');
     document.body.style.overflow = 'hidden';
   }
@@ -370,19 +316,12 @@
     }
   }
 
-  /**
-   * Convenience function to get user-friendly message for error code
-   * For use in toast notifications or other contexts
-   */
   function getMessage(errorCode, fallback) {
     const def = ERROR_DEFINITIONS[errorCode];
     if (def) return def.message;
     return fallback || errorCode || 'An error occurred';
   }
 
-  /**
-   * Show a success modal
-   */
   function showSuccess(title, message, details) {
     createModal();
 
@@ -408,10 +347,6 @@
     modal.classList.add('visible');
     document.body.style.overflow = 'hidden';
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // EXPORT
-  // ═══════════════════════════════════════════════════════════════════════════
 
   window.ErrorModal = {
     show,

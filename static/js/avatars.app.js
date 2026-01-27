@@ -1,13 +1,10 @@
-// static/js/avatars.app.js
 (function () {
-  // --- parametry ruchu / widoczności ---
-  const MAX_AVATAR_DISTANCE_METERS = 86000;      // promień, w którym pokazujemy innych
-  const INTERP_DURATION_MS         = 2500;       // 2.5 s lotu między punktami
+  const MAX_AVATAR_DISTANCE_METERS = 86000;
+  const INTERP_DURATION_MS         = 2500;
 
-  // rozmiar ciałek
-  const AVATAR_BODY_LENGTH_SELF  = 80.0;         // Ty
+  const AVATAR_BODY_LENGTH_SELF  = 80.0;
   const AVATAR_BODY_RADIUS_SELF  =  8.0;
-  const AVATAR_BODY_LENGTH_OTHER = 70.0;         // inni
+  const AVATAR_BODY_LENGTH_OTHER = 70.0;
   const AVATAR_BODY_RADIUS_OTHER =  7.0;
 
   const OP_COLORS = {
@@ -28,32 +25,27 @@
     TAKEOVER_FAIL: 1.8,
   };
 
-  const OP_HIGHLIGHT_MS   = 30_000;  // 30 sekund świecenia po operacji
-  const OP_PULSE_FREQ_HZ  = 1.5;     // ile „pulsów” na sekundę
+  const OP_HIGHLIGHT_MS   = 30_000;
+  const OP_PULSE_FREQ_HZ  = 1.5;
 
-  // ile czasu (ms) trzymać dzwoniącego w małym panelu
-  const CALL_VISIBLE_MS = 60_000; // 1 minuta
+  const CALL_VISIBLE_MS = 60_000;
 
-  // stan UI czatu / dzwoniących
   const chatUIState = {
-    activeUserId: null,     // aktualnie otwarty czat w panelu
+    activeUserId: null,
   };
 
   const chatCallState = {
-    callers: {},            // userId -> { userId, userName, unread, firstSeenMs, lastMsgMs }
-    widgetEl: null,         // root diva widgetu "kto dzwoni"
-  };  
+    callers: {},
+    widgetEl: null,
+  };
 
-  // auto-refresh czatu – id timera
   let avatarChatPoll = null;
-  // --- helpers ---
 
   function getCookie(name) {
     if (!document.cookie) return null;
     const cookies = document.cookie.split(";");
     for (let i = 0; i < cookies.length; i++) {
       const cookie = cookies[i].trim();
-      // Cookie zaczyna się od `name=`
       if (cookie.startsWith(name + "=")) {
         return decodeURIComponent(cookie.substring(name.length + 1));
       }
@@ -61,18 +53,12 @@
     return null;
   }
 
-  // udostępniamy helper globalnie (używany niżej jako window.getCookie)
   window.getCookie = window.getCookie || getCookie;
 
   const csrftoken = getCookie("csrftoken");
 
-
-
-
-
   function normalizeOp(rawOp) {
     if (!rawOp) return null;
-    // string, bez spacji po bokach, duże litery, spacje → podkreślenia
     const s = String(rawOp).trim().toUpperCase().replace(/\s+/g, "_");
     return s || null;
   }
@@ -107,8 +93,6 @@
     return R * c;
   }
 
-  // --- wysyłanie pozycji do Django (throttle 2s) ---
-
   let lastSentTs = 0;
 
   async function sendPositionToServer(lat, lon, alt) {
@@ -123,7 +107,7 @@
     lastSentTs = now;
 
     try {
-      const csrf = getCookie("csrftoken");  // <-- zawsze bierzemy świeży token
+      const csrf = getCookie("csrftoken");
       await fetch("/api/map/position/", {
         method: "POST",
         credentials: "same-origin",
@@ -137,9 +121,6 @@
       console.warn("[avatars] position POST failed", e);
     }
   }
-
-
-  // --- mój awatar (Ty) ---
 
   let myAvatarEntity = null;
   let bound = false;
@@ -156,14 +137,11 @@
     if (!pos) return;
 
     const labelText = window.currentUsername || "You";
-    // Wysokość cylindra = wysokość kamery (alt), jak z kropką
     const markerHeight = Number(pos.alt) || 150;
 
-    // JEDNA encja: point + label
     myAvatarEntity = viewer.entities.add({
     position: Cesium.Cartesian3.fromDegrees(pos.lon, pos.lat, markerHeight),
 
-    // kropka w miejscu awatara
     point: {
         pixelSize: 8,
         color: Cesium.Color.fromCssColorString("#22c55e"),
@@ -172,7 +150,6 @@
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
     },
 
-    // label nad głową
     label: {
         text: labelText,
         font: '14px "Segoe UI", sans-serif',
@@ -181,7 +158,7 @@
         outlineWidth: 2,
         style: Cesium.LabelStyle.FILL_AND_OUTLINE,
         verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-        pixelOffset: new Cesium.Cartesian2(0, -12),   // trochę bliżej kropki
+        pixelOffset: new Cesium.Cartesian2(0, -12),
         showBackground: true,
         backgroundColor: new Cesium.Color(0.05, 0.05, 0.08, 0.9),
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
@@ -203,7 +180,6 @@
       const p = getCameraLatLon();
       if (!p) return;
 
-      // znowu: wysokość cylindra = alt kamery
       const markerHeight2 = Number(p.alt) || 150;
       myAvatarEntity.position = Cesium.Cartesian3.fromDegrees(
         p.lon,
@@ -224,7 +200,6 @@
     window.__myAvatarEntity = myAvatarEntity;
   }
 
-  // heartbeat – wysyłaj swoją pozycję co 3 sekundy, nawet gdy stoisz
   function startOwnPositionHeartbeat() {
     const viewer = getViewer();
     if (!viewer || typeof Cesium === "undefined") return;
@@ -235,8 +210,6 @@
       sendPositionToServer(p.lat, p.lon, p.alt);
     }, 3000);
   }
-
-  // --- inni użytkownicy: mapa userId -> { entity, from/to, czas } ---
 
   const otherAvatars = {};
 
@@ -274,7 +247,7 @@
       return;
     }
 
-    const height = Number(alt) || 300; // mniej więcej jak w menu kontekstowym
+    const height = Number(alt) || 300;
     const range = 600;
     const userName = ent.__avatarName || `User ${idStr}`;
 
@@ -305,7 +278,6 @@
     }
   }
 
-  // wystawiamy globalnie dla innych plików (chat.panel.js)
   window.isAvatarActive = isAvatarActive;
   window.gotoAvatar = gotoAvatar;
 
@@ -338,7 +310,7 @@
       return;
     }
 
-    const height = Number(alt) || 300; // mniej więcej jak w menu kontekstowym
+    const height = Number(alt) || 300;
     const range = 600;
     const userName = ent.__avatarName || `User ${idStr}`;
 
@@ -369,7 +341,6 @@
     }
   }
 
-  // wystawiamy globalnie dla innych plików (chat.panel.js)
   window.isAvatarActive = isAvatarActive;
   window.gotoAvatar = gotoAvatar;
 
@@ -401,7 +372,6 @@
     document.body.appendChild(div);
     chatCallState.widgetEl = div;
 
-    // Obsługa kliknięcia w rządek / Call
     div.addEventListener("click", (e) => {
       const row = e.target.closest("[data-chat-caller-id]");
       if (!row) return;
@@ -411,12 +381,11 @@
 
       const caller = chatCallState.callers[userId];
       if (caller) {
-        caller.unread = 0;     // wyzeruj badge
+        caller.unread = 0;
       }
 
       renderChatCallWidget();
 
-      // NOWE: używamy nowego systemu chatu
       if (typeof window.openChatWithUser === "function") {
         window.openChatWithUser(userId, userName);
       } else if (typeof window.openChatPanel === "function") {
@@ -424,9 +393,9 @@
       } else if (window.toast) {
         window.toast("Chat panel not ready");
       }
-    });  // ⬅︎ domknięcie callbacku + wywołania addEventListener
+    });
 
-    return div; // ⬅︎ to już poza callbackiem
+    return div;
   }
 
 
@@ -434,11 +403,10 @@
     const w = ensureChatCallWidget();
     const now = Date.now();
 
-    // kandydaci: nieprzeczytane + nie minęło CALL_VISIBLE_MS od firstSeen
     const callers = Object.values(chatCallState.callers)
       .filter((c) => c.unread > 0 && now - c.firstSeenMs <= CALL_VISIBLE_MS)
-      .sort((a, b) => b.lastMsgMs - a.lastMsgMs)  // najświeżsi na górze
-      .slice(0, 5);                               // max 5
+      .sort((a, b) => b.lastMsgMs - a.lastMsgMs)
+      .slice(0, 5);
 
     if (!callers.length) {
       w.style.display = "none";
@@ -502,8 +470,6 @@
       chatCallState.callers[idStr] = caller;
     }
 
-    // NOWE: logika „czy to aktywny thread” jest w chat.panel.js,
-    // więc tutaj po prostu zliczamy unread
     caller.unread += 1;
 
     if (!caller.firstSeenMs) caller.firstSeenMs = now;
@@ -512,16 +478,12 @@
     renderChatCallWidget();
   }
 
-
-  // udostępniamy hook dla menu.js (pollChatInbox)
   window.onIncomingDirectChat = onIncomingDirectChat;
-
-  // --- menu kontekstowe (Go to / Chat) ---
 
   let avatarClickHandler = null;
   let avatarClickBound = false;
   let avatarMenuEl = null;
-  let avatarMenuCurrent = null; // {userId, userName, lat, lon, alt}
+  let avatarMenuCurrent = null;
 
   function ensureAvatarMenu() {
     if (avatarMenuEl) return avatarMenuEl;
@@ -582,8 +544,8 @@
       const { lat, lon, alt, userName } = avatarMenuCurrent;
 
       if (Number.isFinite(lat) && Number.isFinite(lon)) {
-        const height = Number(alt) || 300; // wysokość = jego alt
-        const range = 600;                 // 600 m od niego
+        const height = Number(alt) || 300;
+        const range = 600;
 
         if (typeof window.flyToLonLat === "function") {
           window.flyToLonLat(lon, lat, {
@@ -643,7 +605,6 @@ chatBtn.addEventListener("click", () => {
       renderChatCallWidget();
     }
 
-    // pokaż panel czatu (niezależny od #appPanel)
     panel.style.display = "flex";
 
     title.textContent = `Chat with ${userName}`;
@@ -777,16 +738,13 @@ chatBtn.addEventListener("click", () => {
       });
     }
 
-    // pierwsze wczytanie historii
     loadMessages();
 
-    // wyczyść ewentualny stary timer
     if (avatarChatPoll) {
       clearInterval(avatarChatPoll);
       avatarChatPoll = null;
     }
 
-    // auto-refresh co 3 sekundy, dopóki avatarChatPanel jest widoczny
     avatarChatPoll = setInterval(() => {
       const panel = document.getElementById("avatarChatPanel");
       if (!panel || panel.style.display === "none") {
@@ -798,7 +756,6 @@ chatBtn.addEventListener("click", () => {
     }, 3000);
 
 
-  // jeśli ktoś zamknie appPanel lub avatarChatPanel (X) – zatrzymaj auto-refresh czatu
   document.addEventListener("click", (e) => {
     const btn = e.target.closest('[data-close="appPanel"], [data-close="avatarChatPanel"]');
     if (!btn) return;
@@ -924,8 +881,6 @@ chatBtn.addEventListener("click", () => {
     console.log("[avatars] click handler bound");
   }
 
-  // --- pobieranie pozycji innych i przygotowanie „lotów” A->B ---
-
   async function refreshOtherAvatars() {
     const viewer = getViewer();
     if (!viewer || typeof Cesium === "undefined") return;
@@ -960,7 +915,7 @@ chatBtn.addEventListener("click", () => {
         const lon = Number(item.lon);
         const alt = Number(item.alt);
         const opRaw = item.op ?? null;
-        const opKey = normalizeOp(opRaw);      
+        const opKey = normalizeOp(opRaw);
 
         if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
 
@@ -977,25 +932,19 @@ chatBtn.addEventListener("click", () => {
 
         seenIds.add(idStr);
 
-        // Wysokość cylindra = alt przeciwnika (wysokość jego kamery)
         const markerHeight = Number.isFinite(alt) ? alt : 150;
 
-        // mamy już awatara -> nowy lot A->B
         if (otherAvatars[idStr]) {
           const rec = otherAvatars[idStr];
           const ent = rec.entity;
 
           const prevOpKey = ent.__avatarOpKey || null;
 
-          // NOWE: traktujemy tylko niepuste opKey jako TRIGGER highlightu.
-          // opKey = null NIE kasuje trwającego highlightu – ten wygasa sam po OP_HIGHLIGHT_MS.
           if (opKey && opKey !== prevOpKey) {
             ent.__avatarOpKey     = opKey;
             ent.__avatarOpStartMs = now;
           }
 
-          // zapamiętujemy ostatnią niepustą operację jako "rodzaj" highlightu,
-          // ale nie nadpisujemy jej na null
           if (opKey) {
             ent.__avatarOp = opKey;
           }
@@ -1020,8 +969,7 @@ chatBtn.addEventListener("click", () => {
 
         const labelText = item.name || `User ${idStr}`;
 
-        // dobierz kolor i skalę w zależności od operacji
-        const baseColorCss = OP_COLORS[opKey] || "#3b82f6"; // niebieski domyślny
+        const baseColorCss = OP_COLORS[opKey] || "#3b82f6";
         const baseScale    = OP_SCALES[opKey] || 1.0;
 
         const pixelSize    = 8 * baseScale;
@@ -1077,7 +1025,6 @@ chatBtn.addEventListener("click", () => {
 
             }
 
-      // czyścimy tych, których już nie ma
       for (const idStr in otherAvatars) {
         if (!seenIds.has(idStr)) {
           const rec = otherAvatars[idStr];
@@ -1093,8 +1040,6 @@ chatBtn.addEventListener("click", () => {
       console.warn("[avatars] refreshOtherAvatars error", e);
     }
   }
-
-  // --- interpolacja ruchu innych ---
 
   function updateInterpolatedAvatarPositions() {
     const viewer = getViewer();
@@ -1144,7 +1089,6 @@ chatBtn.addEventListener("click", () => {
         ent.__avatarAlt = alt;
         anyMoved = true;
       }
-            // --- NOWE: highlight / pulsowanie po operacji ---
       const opKey = ent.__avatarOpKey || null;
       const opStartMs = ent.__avatarOpStartMs || 0;
       let highlightActive = false;
@@ -1156,17 +1100,15 @@ chatBtn.addEventListener("click", () => {
       const baseLabel = ent.__avatarBaseLabel || ent.__avatarName;
       if (ent.label && baseLabel) {
         if (highlightActive && opKey) {
-          // ładne formatowanie nazwy operacji
           let opLabel;
           if (opKey.endsWith("_FAIL")) {
             const baseOp = opKey.replace("_FAIL", "");
-            opLabel = `${baseOp} FAIL`;   // BUY FAIL, SELL FAIL, TAKEOVER FAIL
+            opLabel = `${baseOp} FAIL`;
           } else {
-            opLabel = opKey;              // BUY / SELL / TAKEOVER
+            opLabel = opKey;
           }
           ent.label.text = `${baseLabel} • ${opLabel}`;
         } else {
-          // zwykły stan – tylko latanie
           ent.label.text = `${baseLabel} • FLY`;
         }
       }
@@ -1179,20 +1121,18 @@ chatBtn.addEventListener("click", () => {
 
           const elapsedSec  = (now - opStartMs) / 1000.0;
           const pulsePhase  = elapsedSec * OP_PULSE_FREQ_HZ * 2.0 * Math.PI;
-          const pulseFactor = 0.85 + 0.30 * (0.5 * (Math.sin(pulsePhase) + 1.0)); // 0.85–1.15
+          const pulseFactor = 0.85 + 0.30 * (0.5 * (Math.sin(pulsePhase) + 1.0));
 
           const pixelSize = 8 * opScale * pulseFactor;
           ent.point.pixelSize = pixelSize;
           ent.point.color = Cesium.Color.fromCssColorString(colorCss);
         } else {
-          // po 30 s wracamy do zwykłego, niebieskiego avatara
           ent.point.pixelSize = 8;
           ent.point.color = Cesium.Color.fromCssColorString("#3b82f6");
         }
       }
 
       if (highlightActive) {
-        // wymuś render nawet jeśli pozycja się nie zmieniła
         anyMoved = true;
       }
     }
@@ -1201,8 +1141,6 @@ chatBtn.addEventListener("click", () => {
       viewer.scene.requestRender();
     }
   }
-
-  // --- pętla animacji + polling innych ---
 
   let avatarsAnimStarted = false;
   let lastRefreshMs = 0;
@@ -1217,10 +1155,8 @@ chatBtn.addEventListener("click", () => {
           ? performance.now()
           : Date.now();
 
-      // płynne przeloty
       updateInterpolatedAvatarPositions();
 
-      // co 3 sekundy pobierz nowe pozycje
       if (!lastRefreshMs || now - lastRefreshMs >= 3000) {
         lastRefreshMs = now;
         refreshOtherAvatars();
@@ -1231,8 +1167,6 @@ chatBtn.addEventListener("click", () => {
 
     requestAnimationFrame(step);
   }
-
-  // --- start całości ---
 
   function startAll() {
     initMyAvatar();
@@ -1247,7 +1181,6 @@ chatBtn.addEventListener("click", () => {
       panel.id = "avatarChatPanel";
       panel.setAttribute("data-panel", "avatar-chat");
 
-      // pełne, niezależne formatowanie – zero zależności od CSS
       panel.style.position = "fixed";
       panel.style.left = "16px";
       panel.style.bottom = "16px";
@@ -1256,11 +1189,10 @@ chatBtn.addEventListener("click", () => {
       panel.style.height = "60vh";
       panel.style.maxHeight = "70vh";
 
-      panel.style.display = "none";          // pokażemy przy otwieraniu
+      panel.style.display = "none";
       panel.style.flexDirection = "column";
 
-      // KLUCZ: TŁO + TEKST
-      panel.style.backgroundColor = "rgb(15, 23, 42)";  // ciemne
+      panel.style.backgroundColor = "rgb(15, 23, 42)";
       panel.style.color = "#e5e7eb";
 
       panel.style.borderRadius = "10px";
@@ -1288,7 +1220,6 @@ chatBtn.addEventListener("click", () => {
 
 
 
-  // wystawiamy helper do globalnego użycia (Friends panel itp.)
   window.openAvatarChatPanel = openAvatarChatPanel;
 
   if (getViewer()) {
@@ -1296,6 +1227,6 @@ chatBtn.addEventListener("click", () => {
   } else {
     window.addEventListener("cesium-ready", startAll);
   }
-  
+
 
 })();

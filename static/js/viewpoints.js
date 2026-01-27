@@ -1,8 +1,3 @@
-/**
- * viewpoints.js - Viewpoints/Observations panel with database backend and smooth fly-to animation
- * Supports saving observations linked to specific houses
- */
-
 (function() {
   'use strict';
 
@@ -57,9 +52,6 @@
     return data;
   }
 
-  /**
-   * Get current camera position and convert to lat/lon
-   */
   function getCurrentViewpoint() {
     const viewer = window.__viewer;
     if (!viewer) return null;
@@ -81,14 +73,10 @@
     };
   }
 
-  /**
-   * Fly to a viewpoint with smooth animation
-   */
   function flyToViewpoint(vp) {
     const viewer = window.__viewer;
     if (!viewer) return;
 
-    // If we have Cartesian3 position, use it directly for exact camera position
     if (vp.pos_x != null && vp.pos_y != null && vp.pos_z != null) {
       viewer.camera.flyTo({
         destination: new Cesium.Cartesian3(vp.pos_x, vp.pos_y, vp.pos_z),
@@ -101,7 +89,6 @@
         easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT,
       });
     } else {
-      // Fallback to lat/lon/height
       const height = vp.height || 500;
       viewer.camera.flyTo({
         destination: Cesium.Cartesian3.fromDegrees(vp.lon, vp.lat, height),
@@ -116,9 +103,6 @@
     }
   }
 
-  /**
-   * Render the viewpoints panel
-   */
   async function renderViewpoints() {
     const vpList = document.getElementById('vpList');
     const vpName = document.getElementById('vpName');
@@ -126,7 +110,6 @@
 
     if (!vpList || !vpSave) return;
 
-    // Show loading
     vpList.innerHTML = '<div class="list-item">Ładowanie...</div>';
 
     try {
@@ -158,7 +141,6 @@
           vpList.appendChild(item);
         });
 
-        // Attach click handlers
         vpList.querySelectorAll('.fly-btn').forEach(btn => {
           btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -182,7 +164,7 @@
 
             try {
               await jpost(API.delete(vp.id), {});
-              renderViewpoints(); // Refresh
+              renderViewpoints();
               if (typeof window.toast === 'function') {
                 window.toast('Usunięto ujęcie');
               }
@@ -205,7 +187,6 @@
       }
     }
 
-    // Save button handler (re-attach on each render)
     vpSave.onclick = async () => {
       const currentVp = getCurrentViewpoint();
       if (!currentVp) {
@@ -232,7 +213,7 @@
         });
 
         if (vpName) vpName.value = '';
-        renderViewpoints(); // Refresh
+        renderViewpoints();
 
         if (typeof window.toast === 'function') {
           window.toast('Zapisano ujęcie');
@@ -246,7 +227,6 @@
     };
   }
 
-  // Export
   window.renderViewpoints = renderViewpoints;
 
   console.log('[Viewpoints] Module loaded');

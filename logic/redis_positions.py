@@ -5,13 +5,11 @@ from django_redis import get_redis_connection
 
 ActorType = Literal["user", "bot"]
 
-# Nazwy kluczy w Redisie
 GEO_KEY = "geo:actors"
-POS_KEY_PREFIX = "pos"  # finalny klucz: f"{POS_KEY_PREFIX}:{actor_type}:{actor_id}"
+POS_KEY_PREFIX = "pos"
 
-# Po jakim czasie uznajemy pozycję za „przeterminowaną”
 DEFAULT_TTL_SECONDS = 120
-STALE_SECONDS = 180  # jak ts starszy niż to, traktujemy jako offline
+STALE_SECONDS = 180
 
 
 def _pos_key(actor_type: ActorType, actor_id: int | str) -> str:
@@ -19,7 +17,6 @@ def _pos_key(actor_type: ActorType, actor_id: int | str) -> str:
 
 
 def _member_name(actor_type: ActorType, actor_id: int | str) -> str:
-    # Członek w GEOSET
     return f"{actor_type}:{actor_id}"
 
 
@@ -36,22 +33,15 @@ def update_actor_position(
     speed: Optional[float] = None,
     ttl_seconds: int = DEFAULT_TTL_SECONDS,
 ) -> None:
-    """
-    Zapisuje lub aktualizuje pozycję usera/bota w Redisie:
-    - geo:actors  (GEO z lon/lat)
-    - pos:<actor_type>:<id>  (hash z dodatkowymi info)
-    """
+    """Update actor position in Redis geo index and hash."""
     r = get_redis_connection("default")
     member = _member_name(actor_type, actor_id)
     pos_key = _pos_key(actor_type, actor_id)
 
-    # Redis GEO używa kolejności: lon, lat
     lon_f = float(lon)
     lat_f = float(lat)
-    # WAŻNE: klasyczna forma lon, lat, member – to działa z redis-py 7.x
     r.geoadd(GEO_KEY, [lon_f, lat_f, member])
 
-    # Hash z dodatkowymi danymi
     now_ts = int(time.time())
     mapping: Dict[str, Any] = {
         "lat": str(lat_f),
@@ -64,21 +54,18 @@ def update_actor_position(
     if name:
         mapping["name"] = str(name)
     if op:
-        mapping["op"] = str(op)        # <<< DODANE        
+        mapping["op"] = str(op)
     if heading is not None:
         mapping["heading"] = str(float(heading))
     if speed is not None:
         mapping["speed"] = str(float(speed))
 
     r.hset(pos_key, mapping=mapping)
-    # TTL, żeby stare pozycje się czyściły
     r.expire(pos_key, ttl_seconds)
 
 
 def get_actor_position(actor_type: ActorType, actor_id: int | str) -> Optional[dict]:
-    """
-    Zwraca ostatnią pozycję aktora z Redis (albo None, jeśli nie ma / przeterminowana).
-    """
+    """Return actor position from Redis or None if not found/stale."""
     r = get_redis_connection("default")
     pos_key = _pos_key(actor_type, actor_id)
     data = r.hgetall(pos_key)
@@ -139,10 +126,7 @@ def get_nearby_actors(
     max_results: int = 200,
     include_types: Optional[List[ActorType]] = None,
 ) -> List[dict]:
-    """
-    Zwraca listę aktorów (user + bot) w promieniu X km od punktu (lat, lon).
-    Każdy element: {type, id, name, lat, lon, alt, dist_km, ts, ...}
-    """
+    """Return list of actors within radius_km from point (lat, lon)."""
     r = get_redis_connection("default")
 
     lat_f = float(lat)
@@ -225,7 +209,7 @@ def get_nearby_actors(
             except ValueError:
                 pass
         if "op" in decoded:
-            item["op"] = decoded["op"]   # <<< DODANE            
+            item["op"] = decoded["op"]
 
         results.append(item)
 

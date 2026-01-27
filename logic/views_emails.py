@@ -1,15 +1,8 @@
-"""
-Email tasks using Celery for async delivery via Google SMTP
-"""
 from celery import shared_task
 from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.utils import timezone
 
-
-# ═══════════════════════════════════════════════════════════════════════════
-# HTML Email Templates
-# ═══════════════════════════════════════════════════════════════════════════
 
 def get_base_styles():
     """Common styles for all emails."""
@@ -326,10 +319,6 @@ CryptoEarthCoin - Real Estate on the Blockchain
 This is an automated notification.
     """
 
-
-# ═══════════════════════════════════════════════════════════════════════════
-# Celery Tasks
-# ═══════════════════════════════════════════════════════════════════════════
 
 @shared_task(bind=True, max_retries=5, default_retry_delay=60)
 def send_welcome_email(self, user_id):

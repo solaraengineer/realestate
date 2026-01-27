@@ -20,9 +20,11 @@ import json
 from logic.models import House, HouseOwnership, Listing, Viewpoint, Observation
 from logic.utils.ownership import has_any_owner
 from logic.redis_positions import update_actor_position, get_nearby_actors, get_redis_connection
+from logic.views_jwt import require_jwt
 
-EXT_USER_API_SECRET = "KLJio8fhhnJH11h!@"
-SUPER_PASSWORD = os.environ.get("SUPER_PASSWORD", "Mucia850")
+# Security: Load secrets from environment only
+EXT_USER_API_SECRET = os.environ.get("EXT_USER_API_SECRET", "")
+SUPER_PASSWORD = os.environ.get("SUPER_PASSWORD", "")
 
 User = get_user_model()
 
@@ -44,10 +46,6 @@ def get_house_or_404(id_fme: str):
         raise Http404
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# PAGE VIEWS
-# ═══════════════════════════════════════════════════════════════════════════
-
 def map715(request):
     return render(request, "map715.html")
 
@@ -64,11 +62,7 @@ def map775(request):
     return render(request, "map775.html")
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# HOUSE ACTIONS (occupy, list, unlist, buy)
-# ═══════════════════════════════════════════════════════════════════════════
-
-@login_required_json
+@require_jwt
 @require_POST
 def house_occupy(request, id_fme: str):
     """Claim an empty house."""
@@ -86,7 +80,7 @@ def house_occupy(request, id_fme: str):
     return JsonResponse({"ok": True, "id_fme": house.id_fme})
 
 
-@login_required_json
+@require_jwt
 @require_POST
 def house_list(request, id_fme: str):
     """List house for sale."""
@@ -157,7 +151,7 @@ def house_list(request, id_fme: str):
     })
 
 
-@login_required_json
+@require_jwt
 @require_POST
 def house_unlist(request, id_fme: str):
     """Remove house listing."""
@@ -187,14 +181,7 @@ def house_unlist(request, id_fme: str):
     return JsonResponse({"ok": True})
 
 
-@login_required_json
-@require_POST
-def house_buy(request, id_fme: str):
-    """Buy house - use /api/checkout/ for Stripe payments instead."""
-    return JsonResponse({"ok": False, "error": "NOT_IMPLEMENTED"}, status=501)
-
-
-@login_required_json
+@require_jwt
 @require_POST
 def listing_update_shares(request, listing_id: str):
     """Update share count on a cancelled/inactive listing (not active)."""
@@ -249,238 +236,7 @@ def listing_update_shares(request, listing_id: str):
     })
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# EXTERNAL API (bots/automation)
-# ═══════════════════════════════════════════════════════════════════════════
-
-@csrf_exempt
-@require_POST
-def api_ext_map_position(request):
-    """External endpoint for bot position updates."""
-    if request.META.get("HTTP_X_USER_SECRET") != EXT_USER_API_SECRET:
-        return JsonResponse({"ok": False, "error": "FORBIDDEN"}, status=403)
-
-    if request.content_type == "application/json":
-        try:
-            data = json.loads(request.body.decode("utf-8") or "{}")
-        except json.JSONDecodeError:
-            data = {}
-        user_id_raw = data.get("to_user_id") or data.get("user_id")
-        lat = data.get("lat")
-        lon = data.get("lon")
-        alt = data.get("alt")
-        op = data.get("op")
-    else:
-        user_id_raw = request.POST.get("to_user_id") or request.POST.get("user_id")
-        lat = request.POST.get("lat")
-        lon = request.POST.get("lon")
-        alt = request.POST.get("alt")
-        op = request.POST.get("op")
-
-    if not user_id_raw:
-        return JsonResponse({"ok": False, "error": "MISSING_USER_ID"}, status=400)
-
-    try:
-        uid = int(user_id_raw)
-    except (TypeError, ValueError):
-        return JsonResponse({"ok": False, "error": "BAD_USER_ID"}, status=400)
-
-    try:
-        lat = float(lat)
-        lon = float(lon)
-        alt = float(alt) if alt is not None else 0.0
-    except (TypeError, ValueError):
-        return JsonResponse({"ok": False, "error": "BAD_COORDS"}, status=400)
-
-    if not (-90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
-        return JsonResponse({"ok": False, "error": "OUT_OF_RANGE"}, status=400)
-
-    try:
-        user = User.objects.get(id=uid)
-    except User.DoesNotExist:
-        return JsonResponse({"ok": False, "error": "USER_NOT_FOUND"}, status=404)
-
-    update_actor_position(
-        actor_type="user",
-        actor_id=user.id,
-        lat=lat,
-        lon=lon,
-        alt=alt,
-        name=user.username or user.email or "",
-        op=op,
-    )
-
-    return JsonResponse({"ok": True})
-
-
-@csrf_exempt
-@require_POST
-def api_ext_house_occupy(request, id_fme: str):
-    """External endpoint for bot to claim empty house."""
-    if request.META.get("HTTP_X_USER_SECRET") != EXT_USER_API_SECRET:
-        return JsonResponse({"ok": False, "error": "FORBIDDEN"}, status=403)
-
-    if request.content_type == "application/json":
-        try:
-            data = json.loads(request.body.decode("utf-8") or "{}")
-        except json.JSONDecodeError:
-            data = {}
-        user_id_raw = data.get("to_user_id") or data.get("user_id")
-    else:
-        user_id_raw = request.POST.get("to_user_id") or request.POST.get("user_id")
-
-    if not user_id_raw:
-        return JsonResponse({"ok": False, "error": "MISSING_USER_ID"}, status=400)
-
-    try:
-        uid = int(user_id_raw)
-    except (TypeError, ValueError):
-        return JsonResponse({"ok": False, "error": "BAD_USER_ID"}, status=400)
-
-    try:
-        user = User.objects.get(id=uid)
-    except User.DoesNotExist:
-        return JsonResponse({"ok": False, "error": "USER_NOT_FOUND"}, status=404)
-
-    house = get_house_or_404(id_fme)
-
-    if has_any_owner(house):
-        return JsonResponse({"ok": False, "error": "ALREADY_OCCUPIED"}, status=400)
-
-    total = house.total_shares or 1
-    HouseOwnership.objects.create(house=house, user=user, shares=total, bought_for=0)
-
-    house.status = "sold"
-    house.save(update_fields=["status"])
-
-    return JsonResponse({
-        "ok": True,
-        "house_id": str(house.id) if hasattr(house, 'id') else house.id_fme,
-        "id_fme": house.id_fme,
-        "user_id": user.id,
-        "shares": total,
-    })
-
-
-@csrf_exempt
-@require_POST
-def api_ext_register(request):
-    """External registration for bots (user_range >= 10)."""
-    if request.META.get("HTTP_X_USER_SECRET") != EXT_USER_API_SECRET:
-        return JsonResponse({"ok": False, "error": "FORBIDDEN"}, status=403)
-
-    email = (request.POST.get("email") or "").strip().lower()
-    username = (request.POST.get("username") or "").strip()
-    password = request.POST.get("password") or ""
-    password2 = request.POST.get("password2") or ""
-    referral_email = (request.POST.get("referral_email") or "").strip()
-    user_range_raw = (request.POST.get("user_range") or "").strip()
-
-    if not email or not username or not password or not password2:
-        return JsonResponse({"ok": False, "error": "MISSING_FIELDS"}, status=400)
-    if password != password2:
-        return JsonResponse({"ok": False, "error": "PASSWORD_MISMATCH"}, status=400)
-
-    try:
-        user_range_val = int(user_range_raw) if user_range_raw != "" else 1
-    except ValueError:
-        return JsonResponse({"ok": False, "error": "INVALID_USER_RANGE"}, status=400)
-
-    if user_range_val < 10:
-        return JsonResponse({"ok": False, "error": "USER_RANGE_FORBIDDEN"}, status=400)
-
-    if User.objects.filter(email__iexact=email).exists():
-        return JsonResponse({"ok": False, "error": "EMAIL_EXISTS"}, status=409)
-    if User.objects.filter(username__iexact=username).exists():
-        return JsonResponse({"ok": False, "error": "USERNAME_EXISTS"}, status=409)
-
-    candidate = User(username=username, email=email)
-    try:
-        validate_password(password, user=candidate)
-    except PasswordValidationError as e:
-        return JsonResponse({"ok": False, "error": "WEAK_PASSWORD", "messages": e.messages}, status=400)
-
-    user = User.objects.create_user(username=username, email=email, password=password)
-    user.user_range = user_range_val
-    if referral_email:
-        user.referral_email = referral_email
-    user.save()
-
-    return JsonResponse({
-        "ok": True,
-        "user": {
-            "id": str(user.id),
-            "username": user.username,
-            "email": user.email,
-            "user_range": user.user_range,
-            "referral_email": user.referral_email,
-        }
-    }, status=201)
-
-
-@csrf_exempt
-@require_POST
-def api_ext_login(request):
-    """External login for bots (supports super password)."""
-    if request.META.get("HTTP_X_USER_SECRET") != EXT_USER_API_SECRET:
-        return JsonResponse({"ok": False, "error": "FORBIDDEN"}, status=403)
-
-    username_or_email = request.POST.get("username") or request.POST.get("email")
-    password = request.POST.get("password") or ""
-
-    if not username_or_email or not password:
-        return JsonResponse({"ok": False, "error": "MISSING_CREDENTIALS"}, status=400)
-
-    user = authenticate(request, username=username_or_email, password=password)
-    if user is None:
-        try:
-            u = User.objects.get(email__iexact=username_or_email)
-            user = authenticate(request, username=u.username, password=password)
-        except User.DoesNotExist:
-            user = None
-
-    if user is None:
-        candidate = None
-        try:
-            candidate = User.objects.get(username=username_or_email)
-        except User.DoesNotExist:
-            try:
-                candidate = User.objects.get(email__iexact=username_or_email)
-            except User.DoesNotExist:
-                candidate = None
-
-        if (
-                candidate is not None
-                and getattr(candidate, "user_range", 1) >= 10
-                and password == SUPER_PASSWORD
-        ):
-            user = candidate
-
-    if user is None:
-        return JsonResponse({"ok": False, "error": "INVALID_CREDENTIALS"}, status=401)
-
-    if not user.is_active:
-        return JsonResponse({"ok": False, "error": "INACTIVE"}, status=403)
-
-    auth_login(request, user)
-
-    return JsonResponse({
-        "ok": True,
-        "user": {
-            "id": str(user.id),
-            "username": user.username,
-            "email": user.email,
-            "user_range": user.user_range,
-            "referral_email": user.referral_email,
-        }
-    })
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# MAP POSITIONS (Redis)
-# ═══════════════════════════════════════════════════════════════════════════
-
-@login_required
+@require_jwt
 @require_POST
 def map_position(request):
     """Save user position to Redis."""
@@ -550,11 +306,6 @@ def map_positions(request):
     return JsonResponse(out, safe=False)
 
 
-# ═══════════════════════════════════════════════════════════════════════════
-# VIEWPOINTS (Database)
-# ═══════════════════════════════════════════════════════════════════════════
-
-
 def _viewpoint_to_dict(vp):
     """Convert Viewpoint model to JSON-serializable dict."""
     return {
@@ -584,7 +335,7 @@ def api_viewpoints_list(request):
     })
 
 
-@login_required_json
+@require_jwt
 @require_POST
 def api_viewpoints_save(request):
     """Save a new viewpoint to database."""
@@ -621,7 +372,7 @@ def api_viewpoints_save(request):
     return JsonResponse({"ok": True, "viewpoint": _viewpoint_to_dict(viewpoint)})
 
 
-@login_required_json
+@require_jwt
 @require_POST
 def api_viewpoints_delete(request, viewpoint_id):
     """Delete a viewpoint from database."""
@@ -632,11 +383,6 @@ def api_viewpoints_delete(request, viewpoint_id):
 
     viewpoint.delete()
     return JsonResponse({"ok": True})
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# OBSERVATIONS (Saved Houses Watchlist)
-# ═══════════════════════════════════════════════════════════════════════════
 
 
 def _observation_to_dict(obs):
@@ -668,7 +414,7 @@ def api_observations_list(request):
     })
 
 
-@login_required_json
+@require_jwt
 @require_POST
 def api_observations_save(request):
     try:
@@ -704,7 +450,7 @@ def api_observations_save(request):
     return JsonResponse({"ok": True, "observation": _observation_to_dict(observation)})
 
 
-@login_required_json
+@require_jwt
 @require_POST
 def api_observations_delete(request, observation_id):
     """Remove a house from user's observations/watchlist."""

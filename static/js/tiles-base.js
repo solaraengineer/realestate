@@ -1,4 +1,3 @@
-// tiles-base.js — „ostatnie słowo ma tileserver”
 window.TILES_BASE = "https://newyork.cryptoearthcoin.com/tileset/tileset.json";
 const TILES_URL = 'https://tiles.cryptoearthcoin.com/styles/basic-preview/{z}/{x}/{y}.webp';
 
@@ -12,7 +11,6 @@ function makeProvider() {
 }
 
 function hardenViewer(v) {
-  // minimalne „utwardzenie” (eliminuje błędy WebGL z postprocess)
   if (v.scene?.postProcessStages) {
     v.scene.postProcessStages.fxaa.enabled = false;
     const bloom = v.scene.postProcessStages.bloom;
@@ -25,11 +23,9 @@ function hardenViewer(v) {
 function applyTileserverBase(viewer) {
   const layers = viewer.imageryLayers;
 
-  // usuń wszystko i dodaj naszą bazę
   layers.removeAll(true);
   const base = layers.addImageryProvider(makeProvider());
 
-  // pilnuj, żeby nasza baza była zawsze na index 0, nawet gdy inne skrypty coś dodadzą
   const origAdd = layers.addImageryProvider.bind(layers);
   layers.addImageryProvider = function (...args) {
     const added = origAdd(...args);
@@ -52,7 +48,6 @@ function applyTileserverBase(viewer) {
 }
 
 function bootTiles() {
-  // jeśli inny kod już stworzył viewer — użyj go; jeśli nie, stwórz minimalny
   if (!window.viewer) {
     window.viewer = new Cesium.Viewer('cesiumContainer', {
       baseLayerPicker: false,
@@ -64,7 +59,6 @@ function bootTiles() {
   applyTileserverBase(window.viewer);
 }
 
-// Odpal na końcu dokumentu
 if (document.readyState === 'loading') {
   window.addEventListener('DOMContentLoaded', bootTiles, { once: true });
 } else {

@@ -1,12 +1,8 @@
-// static/js/chat.panel.js - Simple Chat Panel with WebSocket Support
 (function() {
   'use strict';
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // STATE
-  // ═══════════════════════════════════════════════════════════════════════════
   const state = {
-    activeTab: 'chats',  // 'chats' | 'friends' | 'blocked'
+    activeTab: 'chats',
     selectedUserId: null,
     selectedUserName: null,
     threads: [],
@@ -19,9 +15,6 @@
     wsReconnectTimer: null,
   };
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // API HELPERS
-  // ═══════════════════════════════════════════════════════════════════════════
   const csrf = () => window.getCookie ? window.getCookie('csrftoken') : '';
 
   async function api(url, method = 'GET', data = null) {
@@ -30,7 +23,6 @@
       credentials: 'same-origin',
       headers: {}
     };
-    // Always add CSRF token for non-GET requests
     if (method !== 'GET') {
       opts.headers['X-CSRFToken'] = csrf();
       if (data) {
@@ -50,9 +42,6 @@
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // WEBSOCKET CONNECTION
-  // ═══════════════════════════════════════════════════════════════════════════
   function connectWebSocket() {
     if (state.ws && state.ws.readyState === WebSocket.OPEN) return;
 
@@ -83,7 +72,6 @@
       state.ws.onclose = () => {
         console.log('[ChatPanel] WebSocket closed');
         state.wsConnected = false;
-        // Reconnect after 3 seconds
         if (!state.wsReconnectTimer) {
           state.wsReconnectTimer = setTimeout(() => {
             state.wsReconnectTimer = null;
@@ -122,7 +110,6 @@
 
     if (type === 'message.new') {
       const msg = data.message;
-      // If we're in a conversation with this user, add the message
       if (state.selectedUserId &&
           (String(msg.sender_id) === String(state.selectedUserId) ||
            String(msg.receiver_id) === String(state.selectedUserId))) {
@@ -135,13 +122,11 @@
           mine: isMine
         });
         renderPanel();
-        // Scroll to bottom
         setTimeout(() => {
           const msgList = document.getElementById('messageList');
           if (msgList) msgList.scrollTop = msgList.scrollHeight;
         }, 50);
       } else {
-        // Refresh threads to show new message indicator
         loadThreads().then(() => {
           if (state.activeTab === 'chats' && !state.selectedUserId) {
             renderPanel();
@@ -158,7 +143,6 @@
     }
 
     if (type === 'pong') {
-      // Keep-alive response
       return;
     }
   }
@@ -177,16 +161,11 @@
     return true;
   }
 
-  // Keep-alive ping
   setInterval(() => {
     if (state.ws && state.ws.readyState === WebSocket.OPEN) {
       state.ws.send(JSON.stringify({ type: 'ping' }));
     }
   }, 30000);
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER FUNCTIONS
-  // ═══════════════════════════════════════════════════════════════════════════
 
   function renderPanel() {
     const panel = document.getElementById('chatPanel');
@@ -218,9 +197,6 @@
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // CHATS TAB
-  // ─────────────────────────────────────────────────────────────────────────────
   function renderChatsTab() {
     if (state.selectedUserId) {
       return renderConversation();
@@ -291,13 +267,9 @@
     return html;
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // FRIENDS TAB
-  // ─────────────────────────────────────────────────────────────────────────────
   function renderFriendsTab() {
     let html = '<div class="chat-section">';
 
-    // Add friend search
     html += `
       <div class="chat-subtitle">Add Friend</div>
       <div class="friend-add-section" style="margin-bottom:16px;">
@@ -308,7 +280,6 @@
       </div>
     `;
 
-    // Pending requests
     if (state.pendingRequests.length > 0) {
       html += '<div class="chat-subtitle">Pending Requests</div><div class="chat-list">';
       for (const req of state.pendingRequests) {
@@ -325,7 +296,6 @@
       html += '</div>';
     }
 
-    // Friends list
     html += '<div class="chat-subtitle">My Friends</div><div class="chat-list">';
     if (state.friends.length === 0) {
       html += '<div class="chat-empty" style="color:var(--text-muted);padding:12px;">No friends yet. Search for users above to add friends!</div>';
@@ -346,9 +316,6 @@
     return html;
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // BLOCKED TAB
-  // ─────────────────────────────────────────────────────────────────────────────
   function renderBlockedTab() {
     let html = '<div class="chat-section"><div class="chat-subtitle">Blocked Users</div><div class="chat-list">';
 
@@ -369,15 +336,10 @@
     return html;
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // EVENT BINDING
-  // ═══════════════════════════════════════════════════════════════════════════
-
   function bindPanelEvents() {
     const panel = document.getElementById('chatPanel');
     if (!panel) return;
 
-    // Tab switching
     panel.querySelectorAll('.chat-tab').forEach(tab => {
       tab.onclick = () => {
         state.activeTab = tab.dataset.tab;
@@ -386,7 +348,6 @@
       };
     });
 
-    // Close button
     const closeBtn = panel.querySelector('[data-close]');
     if (closeBtn) {
       closeBtn.onclick = () => {
@@ -394,7 +355,6 @@
       };
     }
 
-    // User search (in chats)
     const searchInput = document.getElementById('userSearch');
     if (searchInput) {
       let debounce = null;
@@ -404,7 +364,6 @@
       };
     }
 
-    // Friend search (in friends tab)
     const addFriendSearch = document.getElementById('addFriendSearch');
     if (addFriendSearch) {
       let debounce = null;
@@ -414,12 +373,10 @@
       };
     }
 
-    // Thread list clicks
     panel.querySelectorAll('.chat-item[data-user-id]').forEach(item => {
       item.onclick = () => openConversation(item.dataset.userId, item.dataset.username);
     });
 
-    // Back button
     const backBtn = document.getElementById('backToList');
     if (backBtn) {
       backBtn.onclick = () => {
@@ -430,7 +387,6 @@
       };
     }
 
-    // Send message
     const sendBtn = document.getElementById('sendBtn');
     const msgInput = document.getElementById('messageInput');
     if (sendBtn && msgInput) {
@@ -440,19 +396,16 @@
       };
     }
 
-    // Add friend from conversation
     const addFriendBtn = document.getElementById('addFriendBtn');
     if (addFriendBtn) {
       addFriendBtn.onclick = () => addFriend(state.selectedUserId);
     }
 
-    // Block from conversation
     const blockBtn = document.getElementById('blockUserBtn');
     if (blockBtn) {
       blockBtn.onclick = () => blockUser(state.selectedUserId);
     }
 
-    // Friends tab actions
     panel.querySelectorAll('[data-accept]').forEach(btn => {
       btn.onclick = (e) => { e.stopPropagation(); acceptFriend(btn.dataset.accept); };
     });
@@ -466,33 +419,24 @@
       btn.onclick = (e) => { e.stopPropagation(); removeFriend(btn.dataset.removeFriend); };
     });
 
-    // Blocked tab actions
     panel.querySelectorAll('[data-unblock]').forEach(btn => {
       btn.onclick = (e) => { e.stopPropagation(); unblockUser(btn.dataset.unblock); };
     });
 
-    // Scroll messages to bottom
     const msgList = document.getElementById('messageList');
     if (msgList) {
       msgList.scrollTop = msgList.scrollHeight;
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // UNREAD BADGE MANAGEMENT
-  // ═══════════════════════════════════════════════════════════════════════════
-
   let unreadPollTimer = null;
 
   function updateMenuBadge() {
-    // Calculate total unread from threads
     const totalUnread = state.threads.reduce((sum, t) => sum + (t.unread || 0), 0);
 
-    // Find the messages button in the menu
     const msgBtn = document.querySelector('[data-action="messages"]');
     if (!msgBtn) return;
 
-    // Find or create badge element
     let badge = msgBtn.querySelector('.unread-badge');
     if (!badge) {
       badge = document.createElement('span');
@@ -500,7 +444,6 @@
       msgBtn.appendChild(badge);
     }
 
-    // Update badge visibility
     if (totalUnread > 0) {
       badge.classList.add('has-unread');
     } else {
@@ -518,15 +461,12 @@
         updateMenuBadge();
       }
     } catch (e) {
-      // Ignore polling errors silently
     }
   }
 
   function startUnreadPolling() {
-    // Initial check
     pollUnreadCount();
 
-    // Poll every 30 seconds
     if (unreadPollTimer) clearInterval(unreadPollTimer);
     unreadPollTimer = setInterval(pollUnreadCount, 30000);
   }
@@ -537,10 +477,6 @@
       unreadPollTimer = null;
     }
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // DATA LOADING
-  // ═══════════════════════════════════════════════════════════════════════════
 
   async function loadTabData() {
     switch (state.activeTab) {
@@ -594,17 +530,12 @@
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ACTIONS
-  // ═══════════════════════════════════════════════════════════════════════════
-
   async function openConversation(userId, username) {
     state.selectedUserId = userId;
     state.selectedUserName = username;
     state.activeTab = 'chats';
     await loadMessages(userId);
 
-    // Mark messages from this user as read
     await markAsRead(userId);
 
     renderPanel();
@@ -613,10 +544,8 @@
   async function markAsRead(userId) {
     try {
       await api(`/api/chat/read/${userId}/`, 'POST');
-      // Refresh threads to update unread counts
       await loadThreads();
     } catch (e) {
-      // Ignore errors silently
     }
   }
 
@@ -624,36 +553,30 @@
     text = (text || '').trim();
     if (!text || !state.selectedUserId) return;
 
-    // Try WebSocket first for real-time delivery
     const wsSent = sendWsMessage(state.selectedUserId, text);
 
     if (wsSent) {
-      // Optimistically add to local messages (will be confirmed by WS response)
       state.messages.push({
         content: text,
         time: new Date().toISOString(),
         mine: true
       });
       renderPanel();
-      // Clear input
       const msgInput = document.getElementById('messageInput');
       if (msgInput) msgInput.value = '';
     } else {
-      // Fall back to HTTP API
       const res = await api('/api/chat/send/', 'POST', {
         to: state.selectedUserId,
         content: text
       });
 
       if (res.ok) {
-        // Add to local messages
         state.messages.push({
           content: text,
           time: new Date().toISOString(),
           mine: true
         });
         renderPanel();
-        // Clear input
         const msgInput = document.getElementById('messageInput');
         if (msgInput) msgInput.value = '';
       } else {
@@ -699,7 +622,6 @@
 
     const res = await api(`/api/users/search/?q=${encodeURIComponent(query)}`);
     if (res.ok && res.users) {
-      // Filter out self and existing friends
       const friendIds = state.friends.map(f => String(f.id));
       const filtered = res.users.filter(u =>
         String(u.id) !== String(window.currentUserId) &&
@@ -727,7 +649,6 @@
 
           const result = await addFriend(userId);
 
-          // Clear search after adding
           const input = document.getElementById('addFriendSearch');
           if (input) input.value = '';
           resultsDiv.innerHTML = '';
@@ -803,10 +724,6 @@
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // HELPERS
-  // ═══════════════════════════════════════════════════════════════════════════
-
   function escHtml(str) {
     if (!str) return '';
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -818,7 +735,6 @@
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
-  // Error message mapping for user-friendly display
   const ERROR_MESSAGES = {
     'MISSING_RECEIVER': 'Receiver not specified',
     'EMPTY_MESSAGE': 'Message cannot be empty',
@@ -856,19 +772,13 @@
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // INIT & EXPORTS
-  // ═══════════════════════════════════════════════════════════════════════════
-
   function initChatPanel() {
     loadTabData();
-    // Connect WebSocket if user is logged in
     if (window.currentUserId) {
       connectWebSocket();
     }
   }
 
-  // Export to window
   window.ChatPanel = {
     init: initChatPanel,
     open: async function() {
@@ -876,7 +786,6 @@
       if (panel) {
         panel.style.display = 'block';
         await loadTabData();
-        // Ensure WebSocket is connected when panel opens
         if (window.currentUserId) {
           connectWebSocket();
         }
@@ -887,7 +796,6 @@
       if (panel) {
         panel.style.display = 'none';
       }
-      // Don't disconnect WebSocket - keep it for notifications
     },
     openChat: openConversation,
     render: renderPanel,
@@ -895,13 +803,11 @@
     disconnectWs: disconnectWebSocket,
   };
 
-  // Export global function for inbox polling (called from menu.js on login)
   window.startChatInboxPolling = function() {
     connectWebSocket();
     startUnreadPolling();
   };
 
-  // Auto-init when DOM ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initChatPanel);
   } else {

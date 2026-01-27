@@ -1,8 +1,3 @@
-/**
- * observations.js - House watchlist/observations panel
- * Allows users to save houses to watch and fly to them
- */
-
 (function() {
   'use strict';
 
@@ -59,9 +54,6 @@
     return data;
   }
 
-  /**
-   * Fly to a house location
-   */
   function flyToHouse(house) {
     const viewer = window.__viewer;
     if (!viewer || !house || house.lat == null || house.lon == null) return;
@@ -78,9 +70,6 @@
     });
   }
 
-  /**
-   * Add current house to observations
-   */
   async function addObservation(houseId, note) {
     if (!houseId) {
       if (typeof window.toast === 'function') {
@@ -104,9 +93,6 @@
     }
   }
 
-  /**
-   * Remove observation
-   */
   async function removeObservation(observationId) {
     try {
       await jpost(API.delete(observationId), {});
@@ -123,9 +109,6 @@
     }
   }
 
-  /**
-   * Check if a house is being observed
-   */
   async function isObserving(houseId) {
     if (!houseId) return false;
     try {
@@ -136,9 +119,6 @@
     }
   }
 
-  /**
-   * Render the observations panel
-   */
   async function renderObservations() {
     const obsList = document.getElementById('obsList');
     const obsNote = document.getElementById('obsNote');
@@ -146,7 +126,6 @@
 
     if (!obsList) return;
 
-    // Show loading
     obsList.innerHTML = '<div class="list-item">Ladowanie...</div>';
 
     try {
@@ -183,7 +162,6 @@
           obsList.appendChild(item);
         });
 
-        // Attach click handlers
         obsList.querySelectorAll('.fly-btn').forEach(btn => {
           btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -207,7 +185,7 @@
 
             const removed = await removeObservation(obs.id);
             if (removed) {
-              renderObservations(); // Refresh
+              renderObservations();
             }
           });
         });
@@ -222,7 +200,6 @@
       }
     }
 
-    // Save button handler (for adding current selected house)
     if (obsSave) {
       obsSave.onclick = async () => {
         const houseId = window.__selectedHouseId;
@@ -237,13 +214,12 @@
         const result = await addObservation(houseId, note);
         if (result) {
           if (obsNote) obsNote.value = '';
-          renderObservations(); // Refresh
+          renderObservations();
         }
       };
     }
   }
 
-  // Export functions
   window.Observations = {
     render: renderObservations,
     add: addObservation,

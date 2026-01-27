@@ -1,14 +1,5 @@
-/**
- * menu.js - Menu and UI Controller
- * Works with Auth module for real login/register
- */
-
 (function() {
   'use strict';
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ELEMENTS
-  // ═══════════════════════════════════════════════════════════════════════════
 
   const menuPanel = document.getElementById('menuPanel');
   const menuContent = document.getElementById('menuContent');
@@ -18,7 +9,6 @@
   const userInfo = document.getElementById('userInfo');
   const logoutBtn = document.getElementById('logoutBtn');
 
-  // Auth panel
   const authPanel = document.getElementById('authPanel');
   const showRegBtn = document.getElementById('showRegBtn');
   const regSection = document.getElementById('regSection');
@@ -26,7 +16,6 @@
   const loginBtn = document.getElementById('loginBtn');
   const regBtn = document.getElementById('regBtn');
 
-  // Other panels
   const offersPanel = document.getElementById('offersPanel');
   const viewpointsPanel = document.getElementById('viewpointsPanel');
   const observationsPanel = document.getElementById('observationsPanel');
@@ -34,22 +23,13 @@
   const featurePanel = document.getElementById('featurePanel');
   const appPanel = document.getElementById('appPanel');
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // STATE
-  // ═══════════════════════════════════════════════════════════════════════════
-
   let loggedIn = false;
   let menuOpen = false;
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // UTILITIES
-  // ═══════════════════════════════════════════════════════════════════════════
 
   const show = (el) => { if (el) el.style.display = 'block'; };
   const hide = (el) => { if (el) el.style.display = 'none'; };
 
   function toast(msg) {
-    // Use Modal.toast if available
     if (window.Modal && typeof window.Modal.toast === 'function') {
       window.Modal.toast(msg, 2000);
       return;
@@ -70,10 +50,6 @@
   }
   window.toast = toast;
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // PANEL MANAGEMENT
-  // ═══════════════════════════════════════════════════════════════════════════
-
   const chatPanel = document.getElementById('chatPanel');
 
   const allPanels = [
@@ -91,14 +67,12 @@
     allPanels.forEach(panel => {
       if (panel) panel.style.display = 'none';
     });
-    // Reset appPanel position class
     if (appPanel) appPanel.classList.remove('panel-left');
   }
 
   function showPanel(panel, position) {
     hideAllPanels();
     if (panel) {
-      // Add position class if specified
       if (position === 'left') {
         panel.classList.add('panel-left');
       }
@@ -108,10 +82,6 @@
 
   window.hideAllPanels = hideAllPanels;
   window.hidePanels = hideAllPanels;
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MENU STATE
-  // ═══════════════════════════════════════════════════════════════════════════
 
   function setMenuOpen(value) {
     menuOpen = value;
@@ -123,10 +93,6 @@
     }
     if (menuToggle) menuToggle.textContent = menuOpen ? 'Zwiń' : 'Rozwiń';
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LOGIN STATE UI
-  // ═══════════════════════════════════════════════════════════════════════════
 
   function setLoginMenuVisibility() {
     const loginMenuBtn = document.querySelector('[data-action="login"]');
@@ -140,10 +106,6 @@
       userInfo.style.display = loggedIn ? 'block' : 'none';
     }
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // AUTH PANEL
-  // ═══════════════════════════════════════════════════════════════════════════
 
   function showAuthPanel() {
     hideAllPanels();
@@ -169,10 +131,6 @@
     setLoginMenuVisibility();
   }
   window.backToMenu = backToMenu;
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LOGIN SUCCESS / LOGOUT
-  // ═══════════════════════════════════════════════════════════════════════════
 
   function onLoginSuccess(userData) {
     loggedIn = true;
@@ -213,17 +171,12 @@
     setLoginMenuVisibility();
     updateUserInfo();
 
-    // Clear forms
     document.querySelectorAll('#loginBody input').forEach(i => i.value = '');
     document.querySelectorAll('#regBody input').forEach(i => {
       if (i.type === 'checkbox') i.checked = false;
       else i.value = '';
     });
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MENU TOGGLE
-  // ═══════════════════════════════════════════════════════════════════════════
 
   if (menuToggle) {
     menuToggle.addEventListener('click', () => setMenuOpen(!menuOpen));
@@ -232,10 +185,6 @@
     menuTitle.addEventListener('click', () => setMenuOpen(!menuOpen));
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SHOW REGISTER FORM
-  // ═══════════════════════════════════════════════════════════════════════════
-
   if (showRegBtn) {
     showRegBtn.addEventListener('click', () => {
       if (regSection) regSection.style.display = 'block';
@@ -243,20 +192,12 @@
     });
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // FORGOT PASSWORD
-  // ═══════════════════════════════════════════════════════════════════════════
-
   if (forgotPass) {
     forgotPass.addEventListener('click', (e) => {
       e.preventDefault();
       toast('Link do zmiany hasła wysłany na maila');
     });
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LOGIN BUTTON
-  // ═══════════════════════════════════════════════════════════════════════════
 
   if (loginBtn) {
     loginBtn.addEventListener('click', async () => {
@@ -278,7 +219,6 @@
       try {
         const result = await Auth.login(email, password);
 
-        // Clear form
         document.querySelectorAll('#loginBody input').forEach(i => i.value = '');
 
         onLoginSuccess(result.user);
@@ -292,7 +232,6 @@
       }
     });
 
-    // Enter key
     document.querySelector('#loginBody')?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -300,10 +239,6 @@
       }
     });
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // REGISTER BUTTON
-  // ═══════════════════════════════════════════════════════════════════════════
 
   if (regBtn) {
     const originalRegLabel = regBtn.textContent || 'Utwórz konto';
@@ -347,7 +282,6 @@
           referralEmail,
         });
 
-        // Clear form
         document.querySelectorAll('#regBody input').forEach(i => {
           if (i.type === 'checkbox') i.checked = false;
           else i.value = '';
@@ -364,7 +298,6 @@
       }
     });
 
-    // Enter key
     document.querySelector('#regBody')?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -372,10 +305,6 @@
       }
     });
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // LOGOUT BUTTON
-  // ═══════════════════════════════════════════════════════════════════════════
 
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
@@ -388,10 +317,6 @@
       toast('Wylogowano');
     });
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MENU ACTION ROUTER
-  // ═══════════════════════════════════════════════════════════════════════════
 
   if (menuContent) {
     menuContent.addEventListener('click', (e) => {
@@ -406,7 +331,7 @@
           break;
 
         case 'offers':
-          showPanel(offersPanel); // center (default)
+          showPanel(offersPanel);
           const saleBody = document.getElementById('saleBody');
           if (saleBody) saleBody.style.display = 'block';
           const saleToggle = document.getElementById('saleToggle');
@@ -418,14 +343,14 @@
           break;
 
         case 'homes':
-          showPanel(appPanel, 'left'); // LEFT SIDE
+          showPanel(appPanel, 'left');
           document.getElementById('appPanelTitle').textContent = 'Moje domy';
           document.getElementById('appPanelBody').innerHTML = '<p class="loading-text">Ładowanie...</p>';
           loadMyHouses();
           break;
 
         case 'transactions':
-          showPanel(appPanel, 'left'); // LEFT SIDE
+          showPanel(appPanel, 'left');
           document.getElementById('appPanelTitle').textContent = 'Moje transakcje';
           document.getElementById('appPanelBody').innerHTML = '<p class="loading-text">Ładowanie...</p>';
           loadMyTransactions();
@@ -439,7 +364,6 @@
           break;
 
         case 'messages':
-          // Use the new ChatPanel
           hideAllPanels();
           if (typeof window.ChatPanel !== 'undefined' && window.ChatPanel.open) {
             window.ChatPanel.open();
@@ -534,10 +458,6 @@
     });
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CLOSE PANEL BUTTONS
-  // ═══════════════════════════════════════════════════════════════════════════
-
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-close]');
     if (!btn) return;
@@ -554,19 +474,11 @@
     }
   });
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ESCAPE KEY
-  // ═══════════════════════════════════════════════════════════════════════════
-
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       hideAllPanels();
     }
   });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SECTION TRIGGERS (Accordion)
-  // ═══════════════════════════════════════════════════════════════════════════
 
   document.querySelectorAll('.section-trigger').forEach(trigger => {
     trigger.addEventListener('click', () => {
@@ -581,20 +493,12 @@
     });
   });
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // FEATURE PANEL CLOSE
-  // ═══════════════════════════════════════════════════════════════════════════
-
   const featureClose = document.getElementById('featureClose');
   if (featureClose && featurePanel) {
     featureClose.addEventListener('click', () => {
       featurePanel.style.display = 'none';
     });
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CHECK SESSION ON LOAD
-  // ═══════════════════════════════════════════════════════════════════════════
 
   (async () => {
     try {
@@ -628,19 +532,9 @@
     }
   })();
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // INIT
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  // Start with menu open
   setMenuOpen(true);
 
-  // Export
   window.getCookie = Auth?.getCookie;
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MY HOUSES - REDESIGNED CARDS WITH ACTIONS
-  // ═══════════════════════════════════════════════════════════════════════════
 
   async function loadMyHouses() {
     const body = document.getElementById('appPanelBody');
@@ -655,7 +549,6 @@
       const res = await fetch('/api/my/houses/', { credentials: 'same-origin' });
       console.log('[MyHouses] Status:', res.status, 'URL:', res.url);
 
-      // Check for redirect (login required)
       if (res.redirected || res.url.includes('?next=')) {
         body.innerHTML = '<p style="color:var(--danger);">Session expired - please log in again</p>';
         return;
@@ -693,10 +586,8 @@
           ? `<div class="listing-shares">${h.listing_shares} shares listed</div>`
           : '';
 
-        // Action buttons based on listing status
         let actionsHtml = '';
         if (h.has_listing) {
-          // Has active listing - show Cancel, Edit Price, Edit Shares
           actionsHtml = `
             <div class="house-actions">
               <button class="btn-action btn-edit-price" data-id-fme="${h.id_fme}" data-listing-id="${h.listing_id}" data-current-shares="${h.listing_shares || h.shares}">Edit Price</button>
@@ -705,7 +596,6 @@
             </div>
           `;
         } else {
-          // No listing - show Go Live button
           actionsHtml = `
             <div class="house-actions">
               <button class="btn-action btn-go-live" data-id-fme="${h.id_fme}" data-max-shares="${h.shares}">Go Live</button>
@@ -733,7 +623,6 @@
       html += '</div>';
       body.innerHTML = html;
 
-      // Add click handlers for fly-to (on header only)
       body.querySelectorAll('.house-card-header').forEach(el => {
         el.addEventListener('click', () => {
           const card = el.closest('.house-card');
@@ -754,23 +643,18 @@
         });
       });
 
-      // ─────────────────────────────────────────────────────────────────────
-      // GO LIVE - Create new listing
-      // ─────────────────────────────────────────────────────────────────────
       body.querySelectorAll('.btn-go-live').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           e.stopPropagation();
           const idFme = btn.dataset.idFme;
           const maxShares = parseInt(btn.dataset.maxShares) || 1;
 
-          // Check if Modal is available
           if (!window.Modal || !window.Modal.prompt) {
             console.error('[GoLive] Modal not available');
             toast('Error: Modal system not loaded');
             return;
           }
 
-          // Prompt for shares using Modal
           const shares = await window.Modal.prompt(
             `How many shares do you want to list? (1-${maxShares})`,
             '',
@@ -778,7 +662,6 @@
           );
           if (shares === null) return;
 
-          // Prompt for price using Modal
           const price = await window.Modal.prompt(
             'Enter total price for these shares:',
             '',
@@ -810,7 +693,7 @@
             }
 
             window.Modal.showSuccess('Success', 'Listing created successfully!');
-            loadMyHouses(); // Refresh
+            loadMyHouses();
           } catch (err) {
             console.error('[GoLive]', err);
             window.Modal.showError('UNKNOWN_ERROR', err.message);
@@ -820,9 +703,6 @@
         });
       });
 
-      // ─────────────────────────────────────────────────────────────────────
-      // CANCEL LISTING
-      // ─────────────────────────────────────────────────────────────────────
       body.querySelectorAll('.btn-cancel-listing').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           e.stopPropagation();
@@ -861,7 +741,7 @@
             }
 
             window.Modal.showSuccess('Success', 'Listing cancelled!');
-            loadMyHouses(); // Refresh
+            loadMyHouses();
           } catch (err) {
             console.error('[CancelListing]', err);
             window.Modal.showError('UNKNOWN_ERROR', err.message);
@@ -871,9 +751,6 @@
         });
       });
 
-      // ─────────────────────────────────────────────────────────────────────
-      // EDIT PRICE
-      // ─────────────────────────────────────────────────────────────────────
       body.querySelectorAll('.btn-edit-price').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           e.stopPropagation();
@@ -916,7 +793,7 @@
             }
 
             window.Modal.showSuccess('Success', 'Price updated!');
-            loadMyHouses(); // Refresh
+            loadMyHouses();
           } catch (err) {
             console.error('[EditPrice]', err);
             window.Modal.showError('UNKNOWN_ERROR', err.message);
@@ -926,9 +803,6 @@
         });
       });
 
-      // ─────────────────────────────────────────────────────────────────────
-      // EDIT SHARES
-      // ─────────────────────────────────────────────────────────────────────
       body.querySelectorAll('.btn-edit-shares').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           e.stopPropagation();
@@ -953,7 +827,6 @@
           btn.textContent = 'Updating...';
 
           try {
-            // Include current price to keep it unchanged
             const resp = await fetch(`/api/house/${encodeURIComponent(idFme)}/list/`, {
               method: 'POST',
               headers: {
@@ -974,7 +847,7 @@
             }
 
             window.Modal.showSuccess('Success', 'Shares updated!');
-            loadMyHouses(); // Refresh
+            loadMyHouses();
           } catch (err) {
             console.error('[EditShares]', err);
             window.Modal.showError('UNKNOWN_ERROR', err.message);
@@ -989,10 +862,6 @@
       body.innerHTML = `<p style="color:var(--danger);">Error: ${e.message}</p>`;
     }
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MY TRANSACTIONS - REDESIGNED CARDS
-  // ═══════════════════════════════════════════════════════════════════════════
 
   async function loadMyTransactions() {
     const body = document.getElementById('appPanelBody');
@@ -1023,12 +892,10 @@
           year: 'numeric'
         }) : '';
 
-        // Show counterparty (who you bought from / sold to)
         const counterpartyText = t.counterparty
           ? (isBuyer ? 'od: ' : 'do: ') + t.counterparty
           : '';
 
-        // Show shares count
         const sharesText = t.shares ? `${t.shares} ${t.shares === 1 ? 'udział' : (t.shares < 5 ? 'udziały' : 'udziałów')}` : '';
 
         html += `
@@ -1049,7 +916,6 @@
       html += '</div>';
       body.innerHTML = html;
 
-      // Add click handlers for fly-to
       body.querySelectorAll('.transaction-item').forEach(el => {
         el.addEventListener('click', () => {
           const lat = parseFloat(el.dataset.lat);
@@ -1076,10 +942,6 @@
   }
 
   console.log('[Menu] Initialized');
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // PROFILE DATA - LOAD & SAVE
-  // ═══════════════════════════════════════════════════════════════════════════
 
   async function loadProfileData() {
     try {
@@ -1166,7 +1028,6 @@
         throw new Error(result.error || 'Save failed');
       }
 
-      // Clear password fields after success
       document.getElementById('profileCurrentPassword').value = '';
       document.getElementById('profileNewPassword').value = '';
       document.getElementById('profileConfirmPassword').value = '';
@@ -1180,10 +1041,6 @@
       btn.textContent = 'Zapisz zmiany';
     }
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // STRIPE FUNCTIONS
-  // ═══════════════════════════════════════════════════════════════════════════
 
   async function loadStripeStatus() {
     const statusSection = document.getElementById('stripeStatusSection');
@@ -1282,7 +1139,6 @@
         return;
       }
 
-      // Redirect to Stripe onboarding
       if (data.onboarding_url) {
         window.location.href = data.onboarding_url;
       }
@@ -1296,10 +1152,6 @@
   }
 
 })();
-
-// ═══════════════════════════════════════════════════════════════════════════
-// BUY LISTING - Outside IIFE for global access
-// ═══════════════════════════════════════════════════════════════════════════
 
 async function buyListing(listingId) {
     try {
@@ -1321,7 +1173,6 @@ async function buyListing(listingId) {
             return;
         }
 
-        // redirect to stripe checkout
         window.location.href = data.checkout_url;
 
     } catch (e) {
@@ -1330,5 +1181,4 @@ async function buyListing(listingId) {
     }
 }
 
-// expose globally
 window.buyListing = buyListing;

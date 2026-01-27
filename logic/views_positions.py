@@ -1,24 +1,35 @@
 import json
+import os
+from functools import wraps
 from django.http import JsonResponse
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 from django.views.decorators.csrf import csrf_exempt
 
 from .redis_positions import update_actor_position, get_nearby_actors
+from .views_jwt import require_jwt
+
+# Internal API secret for server-to-server calls (bots)
+INTERNAL_API_SECRET = os.environ.get("INTERNAL_API_SECRET", "")
 
 
-@csrf_exempt  # jeśli będziesz wołał z JS bez CSRF, na początek można tak
+def require_internal_secret(view_func):
+    """Require internal API secret for server-to-server calls."""
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        secret = request.headers.get('X-Internal-Secret', '')
+        if not INTERNAL_API_SECRET or secret != INTERNAL_API_SECRET:
+            return JsonResponse({"ok": False, "error": "FORBIDDEN"}, status=403)
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+@csrf_exempt
+@require_internal_secret
 @require_POST
 def api_update_position(request):
     """
-    Oczekuje JSON-a:
-    {
-        "type": "user" | "bot",
-        "id": 123,        # dla userów możesz to później brać z request.user.id
-        "lat": 40.7128,
-        "lon": -74.0060,
-        "heading": 123.4,     # opcjonalnie
-        "speed": 1.2          # opcjonalnie
-    }
+    Update actor position (internal API for bots).
+    Requires X-Internal-Secret header.
     """
     try:
         data = json.loads(request.body.decode("utf-8"))
@@ -65,14 +76,10 @@ def api_update_position(request):
     return JsonResponse({"ok": True})
 
 
-from django.views.decorators.http import require_GET
-
-
+@require_jwt
 @require_GET
 def api_nearby_positions(request):
-    """
-    GET /api/positions/nearby/?lat=40.7&lon=-74.0&radius_km=1.5&types=user,bot
-    """
+    """Get nearby positions. Requires authentication."""
     try:
         lat = float(request.GET.get("lat"))
         lon = float(request.GET.get("lon"))

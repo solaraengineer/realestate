@@ -1,20 +1,17 @@
-// static/js/messages.app.js — real messages panel (bez makiety)
 (function () {
   const appTitle = document.getElementById('appPanelTitle');
   const appBody  = document.getElementById('appPanelBody');
   const panel    = document.getElementById('appPanel');
 
-  // schowaj panel wiadomości po starcie + zdejmij ew. dockowanie
   if (panel) {
-    panel.classList.remove('dock-left', 'msgx-wide', 'is-open'); // nic nie pokazujemy na starcie
-    panel.style.display = '';  // czyścimy ewentualne inline
+    panel.classList.remove('dock-left', 'msgx-wide', 'is-open');
+    panel.style.display = '';
   }
-  // auto-refresh: aktywne odpytywanie bieżącego wątku
   let pollTimer   = null;
   let pollConvId  = null;
   let pollSnap    = { count: 0, actionsKey: '' };
 
-  let listPollTimer = null;                 // NOWE: polling listy rozmów
+  let listPollTimer = null;
   const parseTs = s => (s ? Date.parse(s) || 0 : 0);
 
   window.stopMessagesPolling = function () {
@@ -34,10 +31,10 @@
     makeOffer: 'Składam ofertę',
     sendOffer: 'Złóż ofertę',
     cancel: 'Anuluj',
-    accept: 'Zgoda',                // <— krócej
+    accept: 'Zgoda',
     counter: 'Moja oferta',
     sendCounter: 'Złóż kontrofertę',
-    finalize: 'Kupuję',             // sprzedający dostanie „Sprzedaj” dynamicznie
+    finalize: 'Kupuję',
     stop: 'Stop',
     resumeThread: 'Resume thread',
     loading: 'Ładowanie…',
@@ -68,14 +65,14 @@
   function setComposer(html) {
     const comp = appBody.querySelector('.js-composer');
     comp.innerHTML = html;
-    const fresh = comp.cloneNode(true);      // klon bez listenerów
+    const fresh = comp.cloneNode(true);
     comp.parentNode.replaceChild(fresh, comp);
-    return fresh;                            // zwróć świeży węzeł do bindowania
+    return fresh;
   }
- 
+
   async function jget(url) {
     const r = await fetch(url, {credentials:'same-origin'});
-    const t = await r.text(); let d=null; try { d=JSON.parse(t) } catch{} 
+    const t = await r.text(); let d=null; try { d=JSON.parse(t) } catch{}
     if(!r.ok) throw new Error(d?.error || t || 'HTTP error');
     return d;
   }
@@ -86,14 +83,12 @@
       credentials:'same-origin',
       body:new URLSearchParams(data||{})
     });
-    const t = await r.text(); let d=null; try { d=JSON.parse(t) } catch{} 
+    const t = await r.text(); let d=null; try { d=JSON.parse(t) } catch{}
     if(!r.ok) throw new Error(d?.error || t || 'HTTP error');
     return d;
   }
 
-  // ---- helpers ----
   function groupByHouse(convs) {
-    // grupujemy po polu conv.house (string)
     const map = new Map();
     for (const c of convs) {
       const key = c.house || '(house)';
@@ -111,13 +106,11 @@
       state.prepared.house.id ||
       '(dom)';
 
-    // jeśli taka grupa już istnieje – nie duplikuj
     const exists = state.groups.some(g => g.house === label);
     if (!exists) {
       state.groups = [{ house: label, items: [], __prepared: true }, ...state.groups];
     }
 
-    // nowo wstrzyknięta grupa ma być aktywna
     state.groupIdx  = 0;
     state.threadIdx = 0;
   }
@@ -135,10 +128,8 @@
   }
   function extractDeal(d) {
     const deal = d?.deal || d?.negotiation || {};
-    // ceny
     const buyer = deal.buyer ?? d?.price_buyer ?? d?.buyer_offer ?? null;
     const seller = deal.seller ?? d?.price_seller ?? d?.seller_offer ?? null;
-    // udziały (shares)
     const buyerShares = deal.buyer_shares ?? deal.buyerShares ?? d?.buyer_shares ?? null;
     const sellerShares = deal.seller_shares ?? deal.sellerShares ?? d?.seller_shares ?? null;
 
@@ -159,16 +150,11 @@
     const bEl = root.querySelector('.js-buyer-offer');
     const sEl = root.querySelector('.js-seller-offer');
 
-    // ZAWSZE chowamy "oferta sprzedającego"
     if (sellerPill) sellerPill.style.display = 'none';
     if (sEl) sEl.textContent = '';
 
-    // Pokaż tylko jeden pill (kupującego)
     if (buyerPill) buyerPill.style.display = '';
 
-    // Ustaw etykietę w zależności od roli:
-    // - kupujący: "Twoja oferta"
-    // - sprzedający: "Oferta kupującego"
     const bLbl = buyerPill ? buyerPill.querySelector('strong') : null;
     if (bLbl) {
       if (role === 'buyer') {
@@ -176,12 +162,10 @@
       } else if (role === 'seller') {
         bLbl.textContent = `${T.buyerOffer}:`;
       } else {
-        // fallback, gdyby rola nie doszła
         bLbl.textContent = `${T.buyerOffer}:`;
       }
     }
 
-    // Wartość: zawsze pokazujemy ofertę kupującego (cenę + udziały)
     if (bEl) {
       if (buyer != null) {
         const priceStr = fmtPrice(buyer);
@@ -200,10 +184,8 @@
 
   function setBang(el, on) {
     if (!el) return;
-    // przełącz znacznik na elemencie (dla czerwonej listwy po prawej)
     el.classList.toggle('msgx-has-bang', !!on);
 
-    // wstaw / usuń bąbelek „!”
     let dot = el.querySelector('.msgx-bang');
     if (on) {
       if (!dot) {
@@ -217,7 +199,6 @@
     }
   }
   function applyBadges() {
-    // Grupy
     const gBox = appBody.querySelector('.js-groups');
     if (gBox) {
       gBox.querySelectorAll('.msgx-item').forEach(el => {
@@ -227,7 +208,6 @@
         setBang(el, has);
       });
     }
-    // Wątki (dla aktywnej grupy)
     const tBox = appBody.querySelector('.js-threads');
     if (tBox) {
       tBox.querySelectorAll('.msgx-item').forEach(el => {
@@ -243,24 +223,21 @@
     if (listPollTimer) clearInterval(listPollTimer);
     const tick = async () => {
       try {
-        const list = await jget(API.list);           // [{id, awaiting_user, last_time, house, other_user, ...}]
-        // Nie przebudowujemy UI – tylko wyznaczamy badge-i
+        const list = await jget(API.list);
         const next = new Set();
         for (const c of list) {
           const last = parseTs(c.last_time);
           const seen = parseTs(state.lastSeen.get(c.id));
-          // Badge tylko jeśli ostatnia wiadomość jest od przeciwnika i jest nowsza niż to, co “widziałem”
           if (c.awaiting_user && last > seen) next.add(c.id);
         }
         state.badges = next;
         applyBadges();
-      } catch (_) { /* ignoruj chwilowe błędy */ }
+      } catch (_) { }
     };
-    tick(); // od razu
+    tick();
     listPollTimer = setInterval(tick, 4000);
   }
 
-  // ---- renderers ----
   function layoutHTML() {
     return `
       <div class="msgx">
@@ -307,7 +284,7 @@
   function composerDisabledHTML() {
     return `
       <div class="msgx-quick" style="opacity:.85;color:#e7ecef">
-        Wybierz dom na mapie i kliknij „Wyślij wiadomość”<br>
+        Wybierz dom na mapie i kliknij „Wyślij wiadomość"<br>
         lub otwórz istniejący wątek z listy.
       </div>`;
   }
@@ -336,7 +313,6 @@
   }
 
   function composerActionsHTML(allowed) {
-    // allowed: ['send_text','make_offer','stop'] | ['accept','counter','stop'] | ['finalize','counter','stop'] | ['finalize','stop']
     const btn = (cls, label)=>`<button class="msgx-chip ${cls}">${label}</button>`;
     const rows = [];
     const chips = [];
@@ -360,16 +336,15 @@
     return rows.join('\n');
   }
 
-  // ---- state ----
   const state = {
-    list: [],             // conversations (GET /api/messages/)
-    groups: [],           // grouped by house
+    list: [],
+    groups: [],
     groupIdx: 0,
-    threads: [],          // conversations in group
+    threads: [],
     threadIdx: 0,
     currentConvId: null,
-    prepared: null,       // result of /prepare
-    viewMode: 'active',   // 'active' albo 'archived'
+    prepared: null,
+    viewMode: 'active',
   };
   state.badges   = new Set();
   state.lastSeen = new Map();
@@ -411,7 +386,6 @@
     const box = appBody.querySelector('.js-threads');
     if (!box) return;
     if (!state.threads.length) {
-      // zatrzymaj polling, gdy nie ma aktywnego wątku
       if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
       pollConvId = null;
       pollSnap   = { count: 0, actionsKey: '' };
@@ -421,7 +395,7 @@
 
       if (state.prepared && state.prepared.can_message) {
         const fresh = setComposer(composerDefaultHTML());
-        wireComposerNoConv(state.groups[state.groupIdx]?.house); // zapyta ponownie o .js-composer (to już fresh)
+        wireComposerNoConv(state.groups[state.groupIdx]?.house);
       } else {
         setComposer(composerDisabledHTML());
       }
@@ -442,14 +416,13 @@
         el.classList.add('active');
         const c = state.threads[ti];
         if (c) {
-          state.badges.delete(c.id);                      // zgaś badge dla tego wątku
-          state.lastSeen.set(c.id, new Date().toISOString()); // „widziałem” — zanim dociągnie się JSON
+          state.badges.delete(c.id);
+          state.lastSeen.set(c.id, new Date().toISOString());
         }
-        applyBadges();     
+        applyBadges();
         openThread(state.threads[ti].id);
       });
     });
-    // jeśli mamy wątek — otwórz pierwszy
     openThread(state.threads[state.threadIdx].id);
     const activeEl = box.querySelector(`.msgx-item[data-t="${state.threadIdx}"]`);
     if (activeEl) {
@@ -460,10 +433,8 @@
   }
 
   async function openThread(convId) {
-    // zapamiętaj aktywny wątek
     state.currentConvId = convId;
 
-    // wczytaj pełne dane wątku (bezpiecznie)
     let data;
     try {
       data = await jget(API.thread(convId));
@@ -475,12 +446,11 @@
         </div>`;
       }
       state.lastSeen.set(convId, new Date().toISOString());
-      applyBadges(); // zgaś badge w UI
+      applyBadges();
       setComposer(composerDisabledHTML());
-      return; // nie jedziemy dalej, ale UI nie jest „czarne”
+      return;
     }
 
-    // ustaw tytuł sekcji (Wątek: <użytkownik> (<dom>))
     const g = state.groups[state.groupIdx];
     const t = state.threads[state.threadIdx];
     const titleEl = appBody.querySelector('.js-chat-title');
@@ -488,7 +458,6 @@
       titleEl.textContent = `Wątek: ${t?.other_user || ''} (${g?.house || ''})`;
     }
 
-    // wyrenderuj historię wiadomości
     const bodyEl = appBody.querySelector('.js-chat-body');
     if (bodyEl) {
       bodyEl.innerHTML = (data.messages || []).map(msgHTML).join('');
@@ -498,22 +467,17 @@
     if (lastMsg?.time) state.lastSeen.set(convId, lastMsg.time);
     applyBadges();
 
-    // pasek ofert w nagłówku
     updateDealBar(data);
 
-    // composer wg dozwolonych akcji
     setComposer(composerActionsHTML(data.allowed_actions || []));
     wireComposerConv(data);
 
-    // --- start/refresh polling dla otwartego wątku ---
     pollConvId = convId;
 
-    // snapshot do wykrywania zmian
     pollSnap.count      = (data.messages || []).length;
     pollSnap.actionsKey = JSON.stringify(data.allowed_actions || []);
-    pollSnap.status     = data.status || null;  
+    pollSnap.status     = data.status || null;
 
-    // snapshot ofert (dla paska ofert)
     const d0 = extractDeal(data);
     pollSnap.dealKey = JSON.stringify({
       b: d0.buyer,
@@ -522,14 +486,11 @@
       ss: d0.sellerShares,
     });
 
-    // cykliczne odświeżanie
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
     pollTimer = setInterval(async () => {
       try {
-        // jeśli w międzyczasie zmieniłeś wątek – nic nie rób
         if (pollConvId !== state.currentConvId) return;
 
-        // pobierz aktualizację
         const upd = await jget(API.thread(pollConvId));
         const newCount      = (upd.messages || []).length;
         const newActionsKey = JSON.stringify(upd.allowed_actions || []);
@@ -542,7 +503,6 @@
           pollSnap.status = newStatus;
         }
 
-        // 1) doszły nowe wiadomości → podmień body
         if (newCount !== pollSnap.count) {
           const bodyEl = appBody.querySelector('.js-chat-body');
           if (bodyEl) {
@@ -555,14 +515,12 @@
           pollSnap.count = newCount;
         }
 
-        // 2) zmieniły się allowed_actions → odśwież composer
         if (newActionsKey !== pollSnap.actionsKey) {
           setComposer(composerActionsHTML(upd.allowed_actions || []));
           wireComposerConv(upd);
           pollSnap.actionsKey = newActionsKey;
         }
 
-        // 3) zmieniły się oferty → odśwież pasek + PRZE-RENDERUJ composer
         const d1 = extractDeal(upd);
         const newDealKey = JSON.stringify({
           b: d1.buyer,
@@ -579,7 +537,6 @@
 
 
       } catch (_) {
-        // transient errors ignorujemy
       }
     }, 2000);
   }
@@ -587,12 +544,10 @@
 
 
 
-  // -------- Composer (brak rozmowy, tryb start) --------
-  // --- [NO THREAD] Kompozytor w trybie startowym (po kliknięciu „Wyślij wiadomość”, gdy nie ma jeszcze rozmowy)
   function wireComposerNoConv (houseName) {
     const root = document.getElementById('appPanel') || document;
 
-    attach(); // podpinamy jeden delegowany listener do świeżego .js-composer
+    attach();
 
     function attach() {
       const comp = root.querySelector('.js-composer');
@@ -618,7 +573,6 @@
       const btn  = e.target.closest('button');
       if (!btn || !comp.contains(btn)) return;
 
-      // STOP – wyczyść historię i zresetuj kompozytor
       if (btn.classList.contains('js-stop')) {
         const body = root.querySelector('.js-chat-body, .msgx-chat-body');
         if (body) body.innerHTML = '';
@@ -627,7 +581,6 @@
         return;
       }
 
-      // „Składam ofertę” (na razie i tak nie masz tego przycisku, ale logika zostaje)
       if (btn.classList.contains('js-make-offer')) {
         const fresh    = setComposer(composerOfferHTML());
         const priceEl  = fresh.querySelector('.js-price');
@@ -677,7 +630,6 @@
         return;
       }
 
-      // „Moja oferta” – w trybie bez wątku
       if (btn.classList.contains('js-counter')) {
         const fresh    = setComposer(composerOfferHTML());
         const priceEl  = fresh.querySelector('.js-price');
@@ -728,18 +680,16 @@
         return;
       }
 
-      // „Wyślij” w trybie startowym – ZAWSZE zwykła wiadomość
-      // „Wyślij” w trybie startowym – zawsze zwykła wiadomość tekstowa
       if (btn.classList.contains('js-send') || btn.classList.contains('msgx-send') || btn.classList.contains('reply-send')) {
         const input = comp.querySelector('.js-text, .msgx-input, .reply-text');
         const text  = (input && input.value ? input.value : '').trim();
         if (!text) return;
 
         try {
-          await ensureStart();                         // zakłada / znajduje Conversation
-          await jpost(API.send(state.currentConvId), { text }); // ZAWSZE messages_send
+          await ensureStart();
+          await jpost(API.send(state.currentConvId), { text });
           if (input) input.value = '';
-          await openThread(state.currentConvId);       // odśwież wątek
+          await openThread(state.currentConvId);
         } catch (err) {
           window.Modal?.alert((err && err.message) || 'Błąd wysyłania', 'Błąd', 'error');
         }
@@ -790,7 +740,6 @@
       const input      = root.querySelector('.js-text, .reply-text, .msgx-input');
       const sendBtn    = root.querySelector('.js-send, .reply-send, .msgx-send');
 
-      // ENTER w polu tekstowym = Wyślij (dla istniejącego wątku)
       if (input && sendBtn) {
         input.addEventListener('keydown', (e) => {
           if (e.key === 'Enter') {
@@ -800,42 +749,34 @@
         });
       }
 
-      const makeBtn    = root.querySelector('.js-make-offer');           // już nie rysujemy, ale gdyby backend dał — ukryjemy
-      const counterBtn = root.querySelector('.js-counter');              // teraz: „Moja oferta”
+      const makeBtn    = root.querySelector('.js-make-offer');
+      const counterBtn = root.querySelector('.js-counter');
       const acceptBtn  = root.querySelector('.js-accept');
       const finalBtn   = root.querySelector('.js-finalize, .btn-finalize');
       const stopBtn    = root.querySelector('.js-stop');
 
-      // --- rola i stan ofert ---
       const deal = (typeof extractDeal === 'function' ? extractDeal(threadData) : { role: null, buyer: null, seller: null });
       const role = deal.role || (threadData?.deal?.role || (threadData?.is_seller ? 'seller' : 'buyer'));
       const buyerHas  = deal.buyer  != null;
       const sellerHas = deal.seller != null;
       const status    = threadData?.status;
 
-      // --- etykiety ---
       if (counterBtn) counterBtn.textContent = 'Moja oferta';
       if (finalBtn)   finalBtn.textContent   = (role === 'seller') ? 'Sprzedaję' : T.finalize;
-      if (makeBtn)    makeBtn.style.display  = 'none'; // „Składam ofertę” ma zniknąć; już go nie używamy
+      if (makeBtn)    makeBtn.style.display  = 'none';
 
-      // --- blokady wg zasad ---
-      // 1) sprzedający bez oferty kupującego → blokuj „Moja oferta” i „Sprzedaję”
       if (role === 'seller' && !buyerHas) {
         if (counterBtn) counterBtn.setAttribute('disabled', '');
         if (finalBtn)   finalBtn.setAttribute('disabled', '');
       }
       if (status === 'agreed') {
-        // „Moja oferta” już nieaktywna
         if (counterBtn) counterBtn.setAttribute('disabled', '');
-        // kupujący może od razu „Kupuję”
         if (role === 'buyer' && finalBtn) finalBtn.removeAttribute('disabled');
       }
-      // 2) kupujący bez oferty sprzedającego i bez „agreed” → blokuj „Kupuję”
       if (role === 'buyer' && !sellerHas && status !== 'agreed') {
         if (finalBtn) finalBtn.setAttribute('disabled', '');
       }
 
-      // --- helper: formularz ceny (Moja oferta / kontroferta) ---
       function showPriceForm(mode) {
         const html  = (mode === 'counter') ? composerCounterHTML() : composerOfferHTML();
         const fresh = setComposer(html);
@@ -845,7 +786,6 @@
         const sendPriceBtn = fresh.querySelector(sendSel);
         const cancelBtn    = fresh.querySelector('.js-cancel');
 
-        // ENTER w polach = Wyślij ofertę
         if (priceEl && sendPriceBtn) {
           priceEl.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
@@ -871,7 +811,7 @@
             if (!shares) { window.Modal?.alert('Podaj liczbę udziałów', 'Brak danych', 'warning'); return; }
             try {
               await jpost(API.offer(convId), { price, shares });
-              await openThread(convId); // odśwież wątek + pasek ofert
+              await openThread(convId);
             } catch (e) {
               window.Modal?.alert((e && e.message) || 'Błąd wysyłania oferty', 'Błąd', 'error');
             }
@@ -883,12 +823,11 @@
             const f2 = setComposer(
               composerActionsHTML((threadData && threadData.allowed_actions) || [])
             );
-            wireComposerConv(threadData); // odtwórz standardowe akcje
+            wireComposerConv(threadData);
           });
         }
       }
 
-      // --- akcje szybkie (chipsy) ---
       if (counterBtn) {
         counterBtn.addEventListener('click', () => {
           if (counterBtn.hasAttribute('disabled')) return;
@@ -916,10 +855,8 @@
           const roleNow = deal.role || (threadData?.deal?.role || (threadData?.is_seller ? 'seller' : 'buyer'));
 
           try {
-            // 1) przygotuj wątek (akceptacje + listing)
             let prep = await jpost(API.finalize(convId), {});
 
-            // miękki konflikt listingu publicznego – pytamy sprzedającego
             if (prep && prep.ok === false && prep.error === 'PUBLIC_LISTING_WILL_CHANGE' && roleNow === 'seller') {
               const curSh = prep.current_shares;
               const curPr = prep.current_price;
@@ -937,7 +874,6 @@
                 return;
               }
 
-              // drugie podejście – z potwierdzeniem zmiany publicznego listingu
               prep = await jpost(API.finalize(convId), { force_public_change: 1 });
             }
 
@@ -945,7 +881,6 @@
               throw new Error(prep && prep.error || 'Finalize failed');
             }
 
-            // 2) kupujący od razu odpala centralną finalizację (trade)
             if (roleNow === 'buyer') {
               const listingId = prep.listing_id || prep.listing || prep.listingId;
               if (!listingId) throw new Error('NO_LISTING_ID');
@@ -981,7 +916,6 @@
           const text = (input && input.value ? input.value.trim() : '');
           if (!text) return;
           try {
-            // zawsze zwykła wiadomość tekstowa
             await jpost(API.send(convId), { text });
             input.value = '';
             await openThread(convId);
@@ -995,14 +929,12 @@
 
 
 
- 
 
 
-  // --- publiczny entry point: WYMIANA CAŁEJ FUNKCJI ---
+
   window.renderMessagesPanel = async function () {
     if (appTitle) appTitle.textContent = T.title;
     if (typeof openPanelInMenu === 'function') openPanelInMenu('appPanel');
-    // USTAW tryb rozmiaru panelu: średni (80% wysokości, obok menu)
     const panelEl = document.getElementById('appPanel');
 
     if (panelEl && panelEl.getAttribute('data-panel') !== 'messages') {
@@ -1011,26 +943,22 @@
     if (panelEl) {
       const fixSizing = () => {
         panelEl.classList.remove('msgx-wide', 'msgx-medium');
-        panelEl.classList.add('dock-left', 'is-open');   // << pokazujemy panel WYŁĄCZNIE przez klasę
+        panelEl.classList.add('dock-left', 'is-open');
         panelEl.style.removeProperty('width');
         panelEl.style.removeProperty('left');
         panelEl.style.removeProperty('right');
       };
-      // sync + microtask + rAF + timeout — odporne na opóźnione dopięcie klas
       fixSizing(); queueMicrotask(fixSizing); requestAnimationFrame(fixSizing); setTimeout(fixSizing, 0);
     }
 
     appBody.innerHTML = `<div class="conv-card">${T.loading}</div>`;
 
-    // wyczyść poprzedni kontekst – unikamy przejęcia starego wątku
     state.currentConvId = null;
     state.prepared = null;
 
-    // 1) wczytaj listę konwersacji i zbuduj grupy
     await loadList();
     appBody.innerHTML = layoutHTML();
 
-    // >>> TU DODAĆ obsługę przycisków „Aktualne / Archiwum”
     const btnActive   = appBody.querySelector('.js-show-active');
     const btnArchived = appBody.querySelector('.js-show-archived');
 
@@ -1054,10 +982,8 @@
       });
     }
 
-    // Czy mamy narzucony konkretny wątek? (np. z My Real Estate)
     let targetConvId = window.__openConvId ? String(window.__openConvId) : null;
 
-    // 2) PREPARE – jeśli przyszliśmy z klikniętego domu
     const id_fme = (window.__lastPickedIdFME || '').trim();
     if (id_fme) {
       try {
@@ -1065,20 +991,16 @@
         state.prepared = prep;
 
         if (prep.has_conversation && prep.conversation_id) {
-          // jeśli nie narzucono targetu ręcznie, użyj wątku z prepare
           if (!targetConvId) {
             targetConvId = String(prep.conversation_id);
           }
         } else {
-          // brak wątku dla tego domu – wstrzyknij „wirtualną” grupę
           injectPreparedGroup();
         }
       } catch (e) {
-        // brak kontekstu / błąd prepare – jedziemy dalej z samą listą
       }
     }
 
-    // Jeśli mamy docelowy wątek – ustaw groupIdx / threadIdx na niego
     if (targetConvId) {
       outer: for (let gi = 0; gi < state.groups.length; gi++) {
         const g = state.groups[gi];
@@ -1092,12 +1014,10 @@
       }
     }
 
-    // 3) render
     renderGroups();
     buildThreads();
     startListPolling();
 
-    // Włącz poziomy i pionowy resize dla panelu wiadomości
     if (panelEl && typeof window.enableAppPanelResize === 'function') {
       window.enableAppPanelResize(panelEl, {
         axis: 'x',
@@ -1110,7 +1030,6 @@
         storeKey: 'messages_height'
       });
     }
-    // wyczyść, żeby kolejny raz nie wymuszać tego samego wątku
     window.__openConvId = null;
 
   };
@@ -1122,11 +1041,9 @@
       window.stopMessagesPolling?.();
       const panel = document.getElementById('appPanel');
       if (panel) panel.classList.remove('is-open', 'msgx-wide', 'dock-left');
-      if (typeof backToMenu === 'function') backToMenu(); // wróć do menu
+      if (typeof backToMenu === 'function') backToMenu();
     });
   }
 
 
 })();
-
-
