@@ -1,3 +1,7 @@
 .env
 private.pem
 public.pem
+*.tfvars
+*.tfstate
+*.tfstate.backup
+.terraform/

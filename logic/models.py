@@ -66,7 +66,7 @@ class Listing(models.Model):
         related_name='listings'
     )
     price = models.DecimalField(max_digits=12, decimal_places=2)
-    currency = models.CharField(max_length=10, default='PLN')
+    currency = models.CharField(max_length=10, default='USD')
     share_count = models.IntegerField(default=1)
     left_shares = models.IntegerField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=LISTING_STATUS, default='active')
