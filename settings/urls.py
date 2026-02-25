@@ -20,7 +20,6 @@ urlpatterns = [
     path('map775', views.map775, name='map775'),
     path('', views.map715, name='map715'),
 
-    path('api/house/<str:id_fme>/occupy/', views.house_occupy, name='house_occupy'),
     path('api/house/<str:id_fme>/list/', views.house_list, name='house_list'),
     path('api/house/<str:id_fme>/unlist/', views.house_unlist, name='house_unlist'),
     path('api/house/<str:id_fme>/', views_user.house_detail, name='house_detail'),
@@ -37,7 +36,6 @@ urlpatterns = [
     path('api/auth/logout/', views_auth.api_logout, name='api_logout'),
     path('api/auth/whoami/', views_auth.api_whoami, name='api_whoami'),
     path('api/auth/register/', views_auth.api_register, name='api_register'),
-    path('api/auth/csrf/', views_auth.api_csrf, name='api_csrf'),
     path('api/profile/', views_auth.api_profile_update, name='api_profile_update'),
 
     path('api/jwt/login/', views_jwt.api_jwt_login, name='api_jwt_login'),

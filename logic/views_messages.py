@@ -1,28 +1,25 @@
 import json
-from functools import wraps
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 from django.contrib.auth import get_user_model
-from django.db.models import Q, Max, Count, OuterRef, Subquery
+from django.db import transaction
+from django.db.models import Q, Count, OuterRef, Subquery
+from django.core.paginator import Paginator
+from django_ratelimit.decorators import ratelimit
 
 from .models import Message, Friend
 from .views_jwt import require_jwt
 from django.utils import timezone
+
 User = get_user_model()
 
 
-def login_required_json(view_func):
-    @wraps(view_func)
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return JsonResponse({"ok": False, "error": "AUTH_REQUIRED"}, status=401)
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
-
-@login_required_json
+@ratelimit(key='ip', rate='60/m', block=True)
 @require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_chat_threads(request):
     user = request.user
 
@@ -62,10 +59,25 @@ def api_chat_threads(request):
     return JsonResponse({'ok': True, 'threads': threads})
 
 
-@login_required_json
+@ratelimit(key='ip', rate='60/m', block=True)
 @require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_chat_history(request, user_id):
     user = request.user
+    page = request.GET.get('page', 1)
+    per_page = request.GET.get('per_page', 50)
+
+    try:
+        per_page = max(1, min(int(per_page), 100))
+    except (ValueError, TypeError):
+        return JsonResponse({'ok': False, 'error': 'INVALID_PER_PAGE'}, status=400)
+
+    try:
+        page = max(1, int(page))
+    except (ValueError, TypeError):
+        return JsonResponse({'ok': False, 'error': 'INVALID_PAGE'}, status=400)
 
     try:
         peer = User.objects.get(id=user_id)
@@ -75,12 +87,15 @@ def api_chat_history(request, user_id):
     if Friend.objects.filter(user=peer, friend=user, status='blocked').exists():
         return JsonResponse({'ok': False, 'error': 'BLOCKED'}, status=403)
 
-    messages = Message.objects.filter(
+    qs = Message.objects.filter(
         Q(sender=user, receiver=peer) | Q(sender=peer, receiver=user)
-    ).order_by('created_at')
+    ).select_related('sender').order_by('-created_at')
+
+    paginator = Paginator(qs, per_page)
+    page_obj = paginator.get_page(page)
 
     history = []
-    for msg in messages:
+    for msg in page_obj.object_list:
         history.append({
             'id': msg.id,
             'sender_id': msg.sender_id,
@@ -90,16 +105,23 @@ def api_chat_history(request, user_id):
             'mine': msg.sender_id == user.id,
         })
 
+    history.reverse()
+
     return JsonResponse({
         'ok': True,
         'peer': {'id': peer.id, 'username': peer.username},
         'messages': history,
+        'total': paginator.count,
+        'page': page_obj.number,
+        'pages': paginator.num_pages,
     })
 
 
-@require_jwt
+@ratelimit(key='ip', rate='30/m', block=True)
 @require_POST
 @csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_chat_send(request):
     user = request.user
 
@@ -115,6 +137,8 @@ def api_chat_send(request):
         return JsonResponse({'ok': False, 'error': 'MISSING_RECEIVER'}, status=400)
     if not content:
         return JsonResponse({'ok': False, 'error': 'EMPTY_MESSAGE'}, status=400)
+    if len(content) > 2000:
+        return JsonResponse({'ok': False, 'error': 'MESSAGE_TOO_LONG'}, status=400)
 
     try:
         receiver = User.objects.get(id=receiver_id)
@@ -143,9 +167,11 @@ def api_chat_send(request):
     })
 
 
-@require_jwt
+@ratelimit(key='ip', rate='30/m', block=True)
 @require_POST
 @csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_chat_mark_read(request, user_id):
     user = request.user
 
@@ -163,8 +189,11 @@ def api_chat_mark_read(request, user_id):
     return JsonResponse({'ok': True, 'marked': updated})
 
 
-@login_required_json
+@ratelimit(key='ip', rate='60/m', block=True)
 @require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_friends_list(request):
     user = request.user
 
@@ -186,8 +215,11 @@ def api_friends_list(request):
     return JsonResponse({'ok': True, 'friends': friends})
 
 
-@login_required_json
+@ratelimit(key='ip', rate='60/m', block=True)
 @require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_friends_pending(request):
     user = request.user
 
@@ -205,9 +237,11 @@ def api_friends_pending(request):
     return JsonResponse({'ok': True, 'requests': requests})
 
 
-@require_jwt
+@ratelimit(key='ip', rate='30/m', block=True)
 @require_POST
 @csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_friends_add(request):
     user = request.user
 
@@ -229,26 +263,29 @@ def api_friends_add(request):
     if friend.id == user.id:
         return JsonResponse({'ok': False, 'error': 'CANNOT_ADD_SELF'}, status=400)
 
-    existing = Friend.objects.filter(
-        Q(user=user, friend=friend) | Q(user=friend, friend=user)
-    ).first()
+    with transaction.atomic():
+        existing = Friend.objects.select_for_update().filter(
+            Q(user=user, friend=friend) | Q(user=friend, friend=user)
+        ).first()
 
-    if existing:
-        if existing.status == 'accepted':
-            return JsonResponse({'ok': False, 'error': 'ALREADY_FRIENDS'}, status=400)
-        if existing.status == 'pending':
-            return JsonResponse({'ok': False, 'error': 'REQUEST_PENDING'}, status=400)
-        if existing.status == 'blocked':
-            return JsonResponse({'ok': False, 'error': 'BLOCKED'}, status=403)
+        if existing:
+            if existing.status == 'accepted':
+                return JsonResponse({'ok': False, 'error': 'ALREADY_FRIENDS'}, status=400)
+            if existing.status == 'pending':
+                return JsonResponse({'ok': False, 'error': 'REQUEST_PENDING'}, status=400)
+            if existing.status == 'blocked':
+                return JsonResponse({'ok': False, 'error': 'BLOCKED'}, status=403)
 
-    Friend.objects.create(user=user, friend=friend, status='pending')
+        Friend.objects.create(user=user, friend=friend, status='pending')
 
     return JsonResponse({'ok': True})
 
 
-@require_jwt
+@ratelimit(key='ip', rate='30/m', block=True)
 @require_POST
 @csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_friends_accept(request):
     user = request.user
 
@@ -279,9 +316,11 @@ def api_friends_accept(request):
     return JsonResponse({'ok': True})
 
 
-@require_jwt
+@ratelimit(key='ip', rate='30/m', block=True)
 @require_POST
 @csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_friends_remove(request):
     user = request.user
 
@@ -302,8 +341,11 @@ def api_friends_remove(request):
     return JsonResponse({'ok': True})
 
 
-@login_required_json
+@ratelimit(key='ip', rate='60/m', block=True)
 @require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_blocked_list(request):
     user = request.user
 
@@ -319,9 +361,11 @@ def api_blocked_list(request):
     return JsonResponse({'ok': True, 'blocked': users})
 
 
-@require_jwt
+@ratelimit(key='ip', rate='30/m', block=True)
 @require_POST
 @csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_block_user(request):
     user = request.user
 
@@ -352,9 +396,11 @@ def api_block_user(request):
     return JsonResponse({'ok': True})
 
 
-@require_jwt
+@ratelimit(key='ip', rate='30/m', block=True)
 @require_POST
 @csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_unblock_user(request):
     user = request.user
 
@@ -373,8 +419,11 @@ def api_unblock_user(request):
     return JsonResponse({'ok': True})
 
 
-@login_required_json
+@ratelimit(key='ip', rate='60/m', block=True)
 @require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_users_search(request):
     query = request.GET.get('q', '').strip()
 

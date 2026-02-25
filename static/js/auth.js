@@ -395,12 +395,12 @@ window.fetch = async function(url, options = {}) {
                     }
                 }
 
-                // Auth completely failed
-                if (data.error === 'AUTH_REQUIRED' || data.error === 'INVALID_TOKEN') {
-                    console.warn('[Auth] Authentication required. Please log in.');
+                if (data.error === 'AUTH_REQUIRED' || data.error === 'INVALID_TOKEN' || data.error === 'TOKEN_EXPIRED' || data.error === 'TOKEN_REQUIRED') {
                     Auth.clearToken();
-                    // Dispatch custom event for UI to handle
                     window.dispatchEvent(new CustomEvent('auth:required', { detail: { error: data.error } }));
+                    if (typeof window.Modal !== 'undefined' && window.Modal.showError) {
+                        window.Modal.showError(data.error);
+                    }
                 }
             } catch (e) {
                 console.warn('[Auth] Error parsing 401 response:', e);

@@ -750,19 +750,9 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
 
               let actionsHtml = '';
 
-              // 1) Nikt nie ma udziałów → "Zajmij"
-              if (!ownersArr.length) {
-                // brak właścicieli → Zajmij
-                if (currentUserId) {
-                  actionsHtml += '<div id="houseActions"><button class="btn" id="occupyBtn">Zajmij</button></div>';
-                }
-
+              if (currentUserId && !ownersArr.length) {
               } else if (currentUserId && hasShares) {
-                // Właściciel / współwłaściciel – sprzedaż tylko z listy współwłaścicieli
-                // (tu celowo NIE generujemy żadnych globalnych przycisków Sell)
-
               } else if (currentUserId && !hasShares && ownersArr.length > 0) {
-                // User nie ma udziałów, ale dom ma właścicieli → tylko Przejęcie
                 actionsHtml += '<div id="houseActions">' +
                               '  <button class="btn btn-danger" id="takeoverBtn">Przejęcie</button>' +
                               '</div>';
@@ -779,22 +769,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                 actionsRoot = dbBox.querySelector('#houseActions');
                 if (!actionsRoot) return;
 
-                // --- ZAJMIJ ---
-                const occupyBtn = actionsRoot.querySelector('#occupyBtn');
-                if (occupyBtn) {
-                  occupyBtn.addEventListener('click', async () => {
-                    if (!currentUserId) { alert('Zaloguj się.'); return; }
-                    const resp = await fetch(`/api/house/${encodeURIComponent(id)}/occupy/`, {
-                      method: 'POST',
-                      headers: { 'X-CSRFToken': getCookie('csrftoken') },
-                      credentials: 'same-origin'
-                    });
-                    const j = await resp.json().catch(()=>({}));
-                    if (resp.ok && j.ok) { showPropsFor(picked); } else { alert('Błąd zajmowania'); }
-                  });
-                }
-
-                // --- PRZEJĘCIE ---
                 const takeoverBtn = actionsRoot.querySelector('#takeoverBtn');
                 if (takeoverBtn) {
                   takeoverBtn.addEventListener('click', async () => {

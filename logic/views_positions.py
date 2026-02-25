@@ -3,12 +3,12 @@ import os
 from functools import wraps
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST, require_GET
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
+from django_ratelimit.decorators import ratelimit
 
 from .redis_positions import update_actor_position, get_nearby_actors
 from .views_jwt import require_jwt
 
-# Internal API secret for server-to-server calls (bots)
 INTERNAL_API_SECRET = os.environ.get("INTERNAL_API_SECRET", "")
 
 
@@ -23,9 +23,10 @@ def require_internal_secret(view_func):
     return wrapper
 
 
+@ratelimit(key='ip', rate='120/m', block=True)
+@require_POST
 @csrf_exempt
 @require_internal_secret
-@require_POST
 def api_update_position(request):
     """
     Update actor position (internal API for bots).
@@ -76,8 +77,10 @@ def api_update_position(request):
     return JsonResponse({"ok": True})
 
 
-@require_jwt
+@ratelimit(key='ip', rate='60/m', block=True)
 @require_GET
+@csrf_protect
+@require_jwt
 def api_nearby_positions(request):
     """Get nearby positions. Requires authentication."""
     try:

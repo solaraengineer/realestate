@@ -47,6 +47,7 @@ jobs:
         cd /home/ubuntu/django
         source venv/bin/activate
         pip install -r requirements.txt
+        
         ENDSSH
         
         echo "✅ Server 1 deployed"

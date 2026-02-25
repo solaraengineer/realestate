@@ -1,14 +1,15 @@
 import json
 import stripe
-from functools import wraps
 from decimal import Decimal
 from django.conf import settings
 from django.db import transaction
 from django.db.models import F
 from django.http import JsonResponse
 from django.shortcuts import redirect
-from django.views.decorators.csrf import csrf_protect, csrf_exempt
+from django.views.decorators.csrf import csrf_protect, csrf_exempt, ensure_csrf_cookie
+from django.views.decorators.http import require_GET, require_POST
 from django.utils import timezone
+from django_ratelimit.decorators import ratelimit
 
 from .models import Listing, User, HouseOwnership, House, Transaction
 from .views_emails import send_transaction_email
@@ -19,16 +20,11 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 PLATFORM_FEE_PERCENT = Decimal('0.02')
 
 
-def login_required_json(view_func):
-    @wraps(view_func)
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return JsonResponse({"ok": False, "error": "AUTH_REQUIRED"}, status=401)
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
-
-@login_required_json
+@ratelimit(key='ip', rate='60/m', block=True)
+@require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_stripe_status(request):
     user = request.user
 
@@ -67,11 +63,12 @@ def api_stripe_status(request):
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
 
 
+@ratelimit(key='ip', rate='30/m', block=True)
+@require_POST
 @csrf_protect
+@ensure_csrf_cookie
 @require_jwt
 def api_stripe_onboard(request):
-    if request.method != 'POST':
-        return JsonResponse({'ok': False, 'error': 'METHOD_NOT_ALLOWED'}, status=405)
 
     user = request.user
 
@@ -125,7 +122,11 @@ def api_stripe_onboard(request):
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
 
 
-@login_required_json
+@ratelimit(key='ip', rate='60/m', block=True)
+@require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_stripe_onboard_complete(request):
     user = request.user
 
@@ -141,7 +142,11 @@ def api_stripe_onboard_complete(request):
     return redirect('/?stripe=complete')
 
 
-@login_required_json
+@ratelimit(key='ip', rate='60/m', block=True)
+@require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_stripe_onboard_refresh(request):
     user = request.user
 
@@ -160,11 +165,12 @@ def api_stripe_onboard_refresh(request):
         return redirect('/?stripe=error')
 
 
+@ratelimit(key='ip', rate='30/m', block=True)
+@require_POST
 @csrf_protect
+@ensure_csrf_cookie
 @require_jwt
 def api_checkout(request):
-    if request.method != 'POST':
-        return JsonResponse({'ok': False, 'error': 'METHOD_NOT_ALLOWED'}, status=405)
 
     try:
         data = json.loads(request.body)
@@ -391,7 +397,7 @@ def handle_checkout_completed(session):
         buyer_ownership, created = HouseOwnership.objects.get_or_create(
             house_id=house_id,
             user_id=buyer_id,
-            defaults={'shares': 0, 'bought_for': int(session.get('amount_total', 0) / 100)}
+            defaults={'shares': shares, 'bought_for': int(session.get('amount_total', 0) / 100)}
         )
         if not created:
             HouseOwnership.objects.filter(id=buyer_ownership.id).update(shares=F('shares') + shares)
@@ -399,8 +405,6 @@ def handle_checkout_completed(session):
                 HouseOwnership.objects.filter(id=buyer_ownership.id).update(
                     bought_for=int(session.get('amount_total', 0) / 100)
                 )
-        else:
-            HouseOwnership.objects.filter(id=buyer_ownership.id).update(shares=F('shares') + shares)
 
         try:
             seller_ownership = HouseOwnership.objects.select_for_update().get(
@@ -464,11 +468,18 @@ def handle_refund(charge):
             pass
 
 
+@ratelimit(key='ip', rate='60/m', block=True)
+@require_GET
+@ensure_csrf_cookie
 def payment_cancel(request):
     return redirect('/?payment=cancelled')
 
 
-@login_required_json
+@ratelimit(key='ip', rate='60/m', block=True)
+@require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def payment_success(request):
     session_id = request.GET.get('session_id')
 

@@ -1,36 +1,27 @@
-from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, Http404
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_GET
 from django.contrib.auth import get_user_model
 from django.db.models import Prefetch
-from logic.models import Transaction
+from django.core.paginator import Paginator
+from django_ratelimit.decorators import ratelimit
 
-from logic.models import House, Listing, HouseOwnership
+from logic.models import Transaction, House, Listing, HouseOwnership
+from .views_jwt import require_jwt
 
 User = get_user_model()
 
 
-def get_house_or_404(id_fme: str):
-    try:
-        return House.objects.get(id_fme=id_fme)
-    except House.DoesNotExist:
-        raise Http404
-
-
-def login_required_json(view_func):
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return JsonResponse({"ok": False, "error": "NOT_AUTHENTICATED"}, status=401)
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
-
+@ratelimit(key='ip', rate='30/m', block=True)
 @require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def house_detail(request, id_fme: str):
     try:
         h = House.objects.get(id_fme=id_fme)
     except House.DoesNotExist:
-        raise Http404("House not found")
+        return JsonResponse({'ok': False, 'error': 'HOUSE_NOT_FOUND'}, status=404)
 
     a = h.attrs or {}
 
@@ -110,6 +101,7 @@ def house_detail(request, id_fme: str):
         })
 
     return JsonResponse({
+        "ok": True,
         "id_fme": h.id_fme,
         "name": h.name,
         "status": status,
@@ -134,45 +126,49 @@ def house_detail(request, id_fme: str):
     })
 
 
-@login_required_json
+@ratelimit(key='ip', rate='30/m', block=True)
 @require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def listings_nearby(request):
-    try:
-        page = int(request.GET.get("page", "1"))
-    except ValueError:
-        page = 1
-    if page < 1:
-        page = 1
-
+    page = request.GET.get("page", 1)
+    per_page = request.GET.get("per_page", 20)
     price_min_raw = request.GET.get("price_min")
     price_max_raw = request.GET.get("price_max")
 
-    qs = Listing.objects.filter(status="active").order_by('price')
+    try:
+        per_page = max(1, min(int(per_page), 100))
+    except (ValueError, TypeError):
+        return JsonResponse({'ok': False, 'error': 'INVALID_PER_PAGE'}, status=400)
+
+    try:
+        page = max(1, int(page))
+    except (ValueError, TypeError):
+        return JsonResponse({'ok': False, 'error': 'INVALID_PAGE'}, status=400)
+
+    qs = Listing.objects.filter(status="active").select_related('house').order_by('price')
 
     if price_min_raw:
         try:
             qs = qs.filter(price__gte=float(price_min_raw))
-        except ValueError:
-            pass
+        except (ValueError, TypeError):
+            return JsonResponse({'ok': False, 'error': 'INVALID_PRICE_MIN'}, status=400)
+
     if price_max_raw:
         try:
             qs = qs.filter(price__lte=float(price_max_raw))
-        except ValueError:
-            pass
+        except (ValueError, TypeError):
+            return JsonResponse({'ok': False, 'error': 'INVALID_PRICE_MAX'}, status=400)
 
-    page_size = 20
-    total_results = qs.count()
-    start = (page - 1) * page_size
-    listings = list(qs[start:start + page_size])
-
-    house_ids = [lst.house_id for lst in listings]
-    houses = {h.id_fme: h for h in House.objects.filter(id_fme__in=house_ids)}
+    paginator = Paginator(qs, per_page)
+    page_obj = paginator.get_page(page)
 
     user_id = request.user.id
     results = []
 
-    for lst in listings:
-        h = houses.get(lst.house_id)
+    for lst in page_obj.object_list:
+        h = lst.house
         if not h:
             continue
 
@@ -194,21 +190,30 @@ def listings_nearby(request):
     return JsonResponse({
         "ok": True,
         "results": results,
-        "page": page,
-        "page_size": page_size,
-        "total_results": total_results,
+        "page": page_obj.number,
+        "pages": paginator.num_pages,
+        "total": paginator.count,
     })
 
 
-@login_required_json
+@ratelimit(key='ip', rate='30/m', block=True)
 @require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def houses_free_nearby(request):
+    page = request.GET.get("page", 1)
+    per_page = request.GET.get("per_page", 20)
+
     try:
-        page = int(request.GET.get("page", "1"))
-    except ValueError:
-        page = 1
-    if page < 1:
-        page = 1
+        per_page = max(1, min(int(per_page), 100))
+    except (ValueError, TypeError):
+        return JsonResponse({'ok': False, 'error': 'INVALID_PER_PAGE'}, status=400)
+
+    try:
+        page = max(1, int(page))
+    except (ValueError, TypeError):
+        return JsonResponse({'ok': False, 'error': 'INVALID_PAGE'}, status=400)
 
     qs = House.objects.filter(
         ownerships__isnull=True,
@@ -216,17 +221,15 @@ def houses_free_nearby(request):
         lon__isnull=False,
     ).order_by('id_fme')
 
-    page_size = 20
-    total_results = qs.count()
-    start = (page - 1) * page_size
-    houses = list(qs[start:start + page_size])
+    paginator = Paginator(qs, per_page)
+    page_obj = paginator.get_page(page)
 
     results = []
-    for h in houses:
+    for h in page_obj.object_list:
         height = None
         try:
             height = float(h.fme_height) if h.fme_height is not None else None
-        except Exception:
+        except (ValueError, TypeError):
             pass
 
         results.append({
@@ -241,14 +244,17 @@ def houses_free_nearby(request):
     return JsonResponse({
         "ok": True,
         "results": results,
-        "page": page,
-        "page_size": page_size,
-        "total_results": total_results,
+        "page": page_obj.number,
+        "pages": paginator.num_pages,
+        "total": paginator.count,
     })
 
 
-@login_required_json
+@ratelimit(key='ip', rate='30/m', block=True)
 @require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_my_houses(request):
     user_listings_prefetch = Prefetch(
         'house__listings',
@@ -283,27 +289,42 @@ def api_my_houses(request):
     return JsonResponse({"ok": True, "houses": houses})
 
 
-@login_required_json
+@ratelimit(key='ip', rate='30/m', block=True)
 @require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_my_transactions(request):
-
     user = request.user
+    page = request.GET.get('page', 1)
+    per_page = request.GET.get('per_page', 20)
 
-    transactions_as_buyer = Transaction.objects.filter(
+    try:
+        per_page = max(1, min(int(per_page), 100))
+    except (ValueError, TypeError):
+        return JsonResponse({'ok': False, 'error': 'INVALID_PER_PAGE'}, status=400)
+
+    try:
+        page = max(1, int(page))
+    except (ValueError, TypeError):
+        return JsonResponse({'ok': False, 'error': 'INVALID_PAGE'}, status=400)
+
+    buyer_txs = Transaction.objects.filter(
         buyer=user,
         status='completed'
     ).select_related('house', 'seller', 'listing')
 
-    transactions_as_seller = Transaction.objects.filter(
+    seller_txs = Transaction.objects.filter(
         seller=user,
         status='completed'
     ).select_related('house', 'buyer', 'listing')
 
-    transactions = []
-    for tx in transactions_as_buyer:
+    all_txs = []
+
+    for tx in buyer_txs:
         h = tx.house
         seller = tx.seller
-        transactions.append({
+        all_txs.append({
             "id": str(tx.id),
             "role": "buyer",
             "house_name": h.name or h.id_fme if h else "Unknown",
@@ -319,10 +340,10 @@ def api_my_transactions(request):
             "status": tx.status,
         })
 
-    for tx in transactions_as_seller:
+    for tx in seller_txs:
         h = tx.house
         buyer = tx.buyer
-        transactions.append({
+        all_txs.append({
             "id": str(tx.id),
             "role": "seller",
             "house_name": h.name or h.id_fme if h else "Unknown",
@@ -338,6 +359,16 @@ def api_my_transactions(request):
             "status": tx.status,
         })
 
-    transactions.sort(key=lambda x: x.get('created_at') or '', reverse=True)
+    all_txs.sort(key=lambda x: x.get('created_at') or '', reverse=True)
 
-    return JsonResponse({"ok": True, "transactions": transactions})
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated = all_txs[start:end]
+
+    return JsonResponse({
+        "ok": True,
+        "transactions": paginated,
+        "page": page,
+        "pages": -(-len(all_txs) // per_page),
+        "total": len(all_txs),
+    })

@@ -1,12 +1,20 @@
+import json
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.db.models import Q
 from django.core.paginator import Paginator
+from django_ratelimit.decorators import ratelimit
 
 from logic.models import Listing, House
+from .views_jwt import require_jwt
 
 
+@ratelimit(key='ip', rate='60/m', block=True)
 @require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_listings(request):
     status = request.GET.get('status', 'active')
     order_by = request.GET.get('order_by', 'price')
@@ -17,12 +25,12 @@ def api_listings(request):
     per_page = request.GET.get('per_page', 20)
 
     try:
-        per_page = min(int(per_page), 100)
+        per_page = max(1, min(int(per_page), 100))
     except (ValueError, TypeError):
         return JsonResponse({'ok': False, 'error': 'INVALID_PER_PAGE'}, status=400)
 
     try:
-        page = int(page)
+        page = max(1, int(page))
     except (ValueError, TypeError):
         return JsonResponse({'ok': False, 'error': 'INVALID_PAGE'}, status=400)
 
@@ -30,7 +38,7 @@ def api_listings(request):
     if order_by not in allowed_orders:
         return JsonResponse({'ok': False, 'error': 'INVALID_ORDER_BY'}, status=400)
 
-    qs = Listing.objects.all()
+    qs = Listing.objects.select_related('house', 'seller').all()
 
     if status:
         qs = qs.filter(status=status)
@@ -48,23 +56,18 @@ def api_listings(request):
             return JsonResponse({'ok': False, 'error': 'INVALID_MAX_PRICE'}, status=400)
 
     if search:
-        house_ids = House.objects.filter(
-            Q(name__icontains=search) | Q(h3_id__icontains=search)
-        ).values_list('id_fme', flat=True)
-        qs = qs.filter(house_id__in=house_ids)
+        qs = qs.filter(
+            Q(house__name__icontains=search) | Q(house__h3_id__icontains=search)
+        )
 
     qs = qs.order_by(order_by)
 
     paginator = Paginator(qs, per_page)
     page_obj = paginator.get_page(page)
 
-    listing_list = list(page_obj.object_list)
-    house_ids = [l.house_id for l in listing_list]
-    houses = {h.id_fme: h for h in House.objects.filter(id_fme__in=house_ids)}
-
     listings_data = []
-    for listing in listing_list:
-        house = houses.get(listing.house_id)
+    for listing in page_obj.object_list:
+        house = listing.house
         listings_data.append({
             'id': str(listing.id),
             'house_id': str(listing.house_id),
@@ -88,14 +91,18 @@ def api_listings(request):
     })
 
 
+@ratelimit(key='ip', rate='60/m', block=True)
 @require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_listing_detail(request, listing_id):
     try:
-        listing = Listing.objects.get(id=listing_id)
+        listing = Listing.objects.select_related('house').get(id=listing_id)
     except Listing.DoesNotExist:
         return JsonResponse({'ok': False, 'error': 'NOT_FOUND'}, status=404)
 
-    house = House.objects.filter(id_fme=listing.house_id).first()
+    house = listing.house
 
     return JsonResponse({
         'ok': True,
@@ -121,23 +128,23 @@ def api_listing_detail(request, listing_id):
     })
 
 
+@ratelimit(key='ip', rate='60/m', block=True)
 @require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_listings_cheapest(request):
     limit = request.GET.get('limit', 20)
     try:
-        limit = min(int(limit), 50)
+        limit = max(1, min(int(limit), 50))
     except (ValueError, TypeError):
         return JsonResponse({'ok': False, 'error': 'INVALID_LIMIT'}, status=400)
 
-    qs = Listing.objects.filter(status='active').order_by('price')[:limit]
-
-    listing_list = list(qs)
-    house_ids = [l.house_id for l in listing_list]
-    houses = {h.id_fme: h for h in House.objects.filter(id_fme__in=house_ids)}
+    qs = Listing.objects.filter(status='active').select_related('house').order_by('price')[:limit]
 
     listings_data = []
-    for listing in listing_list:
-        house = houses.get(listing.house_id)
+    for listing in qs:
+        house = listing.house
         listings_data.append({
             'id': str(listing.id),
             'house_id': str(listing.house_id),
@@ -150,9 +157,13 @@ def api_listings_cheapest(request):
     return JsonResponse({'ok': True, 'listings': listings_data})
 
 
+@ratelimit(key='ip', rate='60/m', block=True)
 @require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_listings_by_house(request, house_id):
-    qs = Listing.objects.filter(house_id=house_id, status='active').order_by('price')
+    qs = Listing.objects.filter(house_id=house_id, status='active').select_related('seller').order_by('price')
 
     listings_data = []
     for listing in qs:
@@ -169,20 +180,33 @@ def api_listings_by_house(request, house_id):
     return JsonResponse({'ok': True, 'listings': listings_data})
 
 
+@ratelimit(key='ip', rate='60/m', block=True)
 @require_GET
+@csrf_protect
+@ensure_csrf_cookie
+@require_jwt
 def api_my_listings(request):
-    if not request.user.is_authenticated:
-        return JsonResponse({'ok': False, 'error': 'AUTH_REQUIRED'}, status=401)
+    page = request.GET.get('page', 1)
+    per_page = request.GET.get('per_page', 20)
 
-    qs = Listing.objects.filter(seller=request.user).order_by('-valid_from')
+    try:
+        per_page = max(1, min(int(per_page), 100))
+    except (ValueError, TypeError):
+        return JsonResponse({'ok': False, 'error': 'INVALID_PER_PAGE'}, status=400)
 
-    listing_list = list(qs)
-    house_ids = [l.house_id for l in listing_list]
-    houses = {h.id_fme: h for h in House.objects.filter(id_fme__in=house_ids)}
+    try:
+        page = max(1, int(page))
+    except (ValueError, TypeError):
+        return JsonResponse({'ok': False, 'error': 'INVALID_PAGE'}, status=400)
+
+    qs = Listing.objects.filter(seller=request.user).select_related('house').order_by('-valid_from')
+
+    paginator = Paginator(qs, per_page)
+    page_obj = paginator.get_page(page)
 
     listings_data = []
-    for listing in listing_list:
-        house = houses.get(listing.house_id)
+    for listing in page_obj.object_list:
+        house = listing.house
         listings_data.append({
             'id': str(listing.id),
             'house_id': str(listing.house_id),
@@ -194,4 +218,10 @@ def api_my_listings(request):
             'valid_from': listing.valid_from.isoformat() if listing.valid_from else None,
         })
 
-    return JsonResponse({'ok': True, 'listings': listings_data})
+    return JsonResponse({
+        'ok': True,
+        'listings': listings_data,
+        'total': paginator.count,
+        'page': page_obj.number,
+        'pages': paginator.num_pages,
+    })

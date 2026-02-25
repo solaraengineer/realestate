@@ -807,11 +807,7 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
 
               let actionsHtml = '';
 
-              if (!ownersArr.length) {
-                if (currentUserId) {
-                  actionsHtml += '<div id="houseActions"><button class="btn" id="occupyBtn">Zajmij</button></div>';
-                }
-
+              if (currentUserId && !ownersArr.length) {
               } else if (currentUserId && hasShares) {
               } else if (currentUserId && !hasShares && ownersArr.length > 0) {
                 actionsHtml += '<div id="houseActions">' +
@@ -827,29 +823,6 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
 
                 actionsRoot = dbBox.querySelector('#houseActions');
                 if (!actionsRoot) return;
-
-                const occupyBtn = actionsRoot.querySelector('#occupyBtn');
-                if (occupyBtn) {
-                  occupyBtn.addEventListener('click', async () => {
-                    if (!currentUserId) {
-                      window.Modal.showError('AUTH_REQUIRED');
-                      return;
-                    }
-                    const resp = await fetch(`/api/house/${encodeURIComponent(id)}/occupy/`, {
-                      method: 'POST',
-                      headers: { 'X-CSRFToken': getCookie('csrftoken') },
-                      credentials: 'same-origin'
-                    });
-                    const j = await resp.json().catch(()=>({}));
-                    if (resp.ok && j.ok) {
-                      window.Modal.showSuccess('Success', 'Property claimed successfully!');
-                      showPropsFor(picked);
-                    } else {
-                      const errorCode = j.error || 'UNKNOWN_ERROR';
-                      window.Modal.showError(errorCode, j.message);
-                    }
-                  });
-                }
 
                 const takeoverBtn = actionsRoot.querySelector('#takeoverBtn');
                 if (takeoverBtn) {
