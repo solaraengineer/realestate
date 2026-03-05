@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
 
@@ -19,6 +19,7 @@ urlpatterns = [
     path('Map2', views.Map2, name='Map2'),
     path('map775', views.map775, name='map775'),
     path('', views.map715, name='map715'),
+    path('', include('django_prometheus.urls'), name='django_prometheus'),
 
     path('api/house/<str:id_fme>/list/', views.house_list, name='house_list'),
     path('api/house/<str:id_fme>/unlist/', views.house_unlist, name='house_unlist'),

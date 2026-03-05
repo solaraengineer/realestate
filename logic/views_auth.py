@@ -70,9 +70,9 @@ def api_login(request):
     if not user:
         try:
             u = User.objects.get(email__iexact=email)
-            user = authenticate(request, username=u.username, password=password)
+            user = authenticate(request, email=u.email, password=password)
         except User.DoesNotExist:
-            pass
+            return JsonResponse({"ok": False, "error": "ACCOUNT_DOES_NOT_EXIST"}, status=400)
 
     if not user:
         return JsonResponse({"ok": False, "error": "INVALID_CREDENTIALS"}, status=401)
@@ -128,8 +128,8 @@ def api_register(request):
     username = cd['username']
     email = cd['email']
     password = cd['password']
-
-    user = User.objects.create_user(username=username, email=email, password=password)
+    with  transaction.atomic():
+     user = User.objects.create_user(username=username, email=email, password=password)
     auth_login(request, user)
 
     token = generate_jwt_token(user)

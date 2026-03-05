@@ -429,6 +429,8 @@ def api_users_search(request):
 
     if len(query) < 2:
         return JsonResponse({'ok': True, 'users': []})
+    if len(query) > 100:
+        return JsonResponse({'ok': False, 'error': 'QUERY_TOO_LONG'}, status=400)
 
     users = User.objects.filter(
         username__icontains=query
