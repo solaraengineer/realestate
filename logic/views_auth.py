@@ -20,7 +20,7 @@ User = get_user_model()
 
 SAFE_TEXT = re.compile(r'^[A-Za-z0-9 !@#.\-]*$')
 SAFE_USERNAME = re.compile(r'^[A-Za-z0-9!@#.\-]{3,30}$')
-SAFE_EMAIL = re.compile(r'^[A-Za-z0-9.!#\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$')
+SAFE_EMAIL = re.compile(r'^[A-Za-z0-9.!#$%&\'*+/=?^_`{|}~\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$')
 SAFE_POSTAL = re.compile(r'^[A-Za-z0-9 \-]{2,10}$')
 SAFE_VAT = re.compile(r'^[A-Za-z0-9\-]{2,11}$')
 

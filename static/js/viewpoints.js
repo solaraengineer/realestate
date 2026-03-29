@@ -12,14 +12,16 @@
     return match ? match[1] : '';
   }
 
+  function escHtml(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
   const ERROR_MESSAGES = {
-    'AUTH_REQUIRED': 'Zaloguj się, aby zapisywać viewpointy',
-    'INVALID_JSON': 'Nieprawidłowe dane',
-    'BAD_COORDS': 'Nie można pobrać współrzędnych',
+    'AUTH_REQUIRED': 'Log in to save viewpoints',
+    'INVALID_JSON': 'Invalid data',
+    'BAD_COORDS': 'Unable to retrieve coordinates',
   };
 
   function getErrorMessage(code) {
-    return ERROR_MESSAGES[code] || code || 'Wystąpił błąd';
+    return ERROR_MESSAGES[code] || code || 'An error occurred';
   }
 
   async function jget(url) {
@@ -110,14 +112,14 @@
 
     if (!vpList || !vpSave) return;
 
-    vpList.innerHTML = '<div class="list-item">Ładowanie...</div>';
+    vpList.innerHTML = '<div class="list-item">Loading...</div>';
 
     try {
       const data = await jget(API.list);
       const viewpoints = data.viewpoints || [];
 
       if (viewpoints.length === 0) {
-        vpList.innerHTML = '<div class="list-item" style="color:var(--text-muted);">Brak zapisanych ujęć. Dodaj swój pierwszy viewpoint!</div>';
+        vpList.innerHTML = '<div class="list-item" style="color:var(--text-muted);">No saved viewpoints. Add your first viewpoint!</div>';
       } else {
         vpList.innerHTML = '';
         viewpoints.forEach((vp, i) => {
@@ -129,11 +131,11 @@
 
           item.innerHTML = `
             <div style="flex:1;min-width:0;">
-              <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${vp.name || 'Ujecie ' + (i + 1)}</div>
-              <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${coordsStr}</div>
+              <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(vp.name) || 'Viewpoint ' + (i + 1)}</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${escHtml(coordsStr)}</div>
             </div>
             <div style="display:flex;gap:6px;flex-shrink:0;">
-              <button class="btn fly-btn" data-idx="${i}" style="padding:6px 12px;font-size:11px;background:var(--accent);">Leć</button>
+              <button class="btn fly-btn" data-idx="${i}" style="padding:6px 12px;font-size:11px;background:var(--accent);">Fly</button>
               <button class="btn del-btn" data-idx="${i}" style="padding:6px 10px;font-size:11px;background:#ef4444;">X</button>
             </div>
           `;
@@ -149,7 +151,7 @@
             if (vp) {
               flyToViewpoint(vp);
               if (typeof window.toast === 'function') {
-                window.toast(`Lecę do: ${vp.name}`);
+                window.toast(`Flying to: ${vp.name}`);
               }
             }
           });
@@ -166,12 +168,12 @@
               await jpost(API.delete(vp.id), {});
               renderViewpoints();
               if (typeof window.toast === 'function') {
-                window.toast('Usunięto ujęcie');
+                window.toast('Viewpoint deleted');
               }
             } catch (err) {
               console.error('[Viewpoints] Delete error:', err);
               if (typeof window.toast === 'function') {
-                window.toast('Błąd usuwania');
+                window.toast('Delete failed');
               }
             }
           });
@@ -181,9 +183,9 @@
     } catch (err) {
       console.error('[Viewpoints] Load error:', err);
       if (err.code === 'AUTH_REQUIRED') {
-        vpList.innerHTML = '<div class="list-item" style="color:var(--text-muted);">Zaloguj się, aby zobaczyć swoje viewpointy.</div>';
+        vpList.innerHTML = '<div class="list-item" style="color:var(--text-muted);">Log in to see your viewpoints.</div>';
       } else {
-        vpList.innerHTML = '<div class="list-item" style="color:#f87171;">Błąd ładowania</div>';
+        vpList.innerHTML = '<div class="list-item" style="color:#f87171;">Loading error</div>';
       }
     }
 
@@ -191,7 +193,7 @@
       const currentVp = getCurrentViewpoint();
       if (!currentVp) {
         if (typeof window.toast === 'function') {
-          window.toast('Nie można pobrać pozycji kamery');
+          window.toast('Unable to get camera position');
         }
         return;
       }
@@ -216,12 +218,12 @@
         renderViewpoints();
 
         if (typeof window.toast === 'function') {
-          window.toast('Zapisano ujęcie');
+          window.toast('Viewpoint saved');
         }
       } catch (err) {
         console.error('[Viewpoints] Save error:', err);
         if (typeof window.toast === 'function') {
-          window.toast(err.message || 'Błąd zapisywania');
+          window.toast(err.message || 'Save failed');
         }
       }
     };

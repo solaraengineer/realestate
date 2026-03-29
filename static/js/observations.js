@@ -1,6 +1,8 @@
 (function() {
   'use strict';
 
+  function escHtml(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
   const API = {
     list: '/api/observations/',
     save: '/api/observations/save/',
@@ -14,14 +16,14 @@
   }
 
   const ERROR_MESSAGES = {
-    'AUTH_REQUIRED': 'Zaloguj sie, aby zapisywac obserwacje',
-    'INVALID_JSON': 'Nieprawidlowe dane',
-    'MISSING_HOUSE_ID': 'Brak ID budynku',
-    'HOUSE_NOT_FOUND': 'Budynek nie znaleziony',
+    'AUTH_REQUIRED': 'Log in to save watchlist items',
+    'INVALID_JSON': 'Invalid data',
+    'MISSING_HOUSE_ID': 'Missing building ID',
+    'HOUSE_NOT_FOUND': 'Building not found',
   };
 
   function getErrorMessage(code) {
-    return ERROR_MESSAGES[code] || code || 'Wystapil blad';
+    return ERROR_MESSAGES[code] || code || 'An error occurred';
   }
 
   async function jget(url) {
@@ -73,7 +75,7 @@
   async function addObservation(houseId, note) {
     if (!houseId) {
       if (typeof window.toast === 'function') {
-        window.toast('Wybierz budynek do obserwacji');
+        window.toast('Select a building to watch');
       }
       return null;
     }
@@ -81,13 +83,13 @@
     try {
       const result = await jpost(API.save, { house_id: houseId, note: note || undefined });
       if (typeof window.toast === 'function') {
-        window.toast(result.updated ? 'Zaktualizowano obserwacje' : 'Dodano do obserwowanych');
+        window.toast(result.updated ? 'Watchlist item updated' : 'Added to watchlist');
       }
       return result.observation;
     } catch (err) {
       console.error('[Observations] Save error:', err);
       if (typeof window.toast === 'function') {
-        window.toast(err.message || 'Blad zapisywania');
+        window.toast(err.message || 'Error saving');
       }
       return null;
     }
@@ -97,13 +99,13 @@
     try {
       await jpost(API.delete(observationId), {});
       if (typeof window.toast === 'function') {
-        window.toast('Usunieto z obserwowanych');
+        window.toast('Removed from watchlist');
       }
       return true;
     } catch (err) {
       console.error('[Observations] Delete error:', err);
       if (typeof window.toast === 'function') {
-        window.toast('Blad usuwania');
+        window.toast('Error removing');
       }
       return false;
     }
@@ -126,14 +128,14 @@
 
     if (!obsList) return;
 
-    obsList.innerHTML = '<div class="list-item">Ladowanie...</div>';
+    obsList.innerHTML = '<div class="list-item">Loading...</div>';
 
     try {
       const data = await jget(API.list);
       const observations = data.observations || [];
 
       if (observations.length === 0) {
-        obsList.innerHTML = '<div class="list-item" style="color:var(--text-muted);">Brak obserwowanych budynkow. Kliknij na budynek i dodaj go do obserwacji!</div>';
+        obsList.innerHTML = '<div class="list-item" style="color:var(--text-muted);">No watchlist items. Click on a building and add it to your watchlist!</div>';
       } else {
         obsList.innerHTML = '';
         observations.forEach((obs, i) => {
@@ -142,19 +144,19 @@
           item.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px;margin-bottom:6px;background:var(--glass-light);border:1px solid var(--border);border-radius:8px;';
 
           const house = obs.house || {};
-          const houseName = house.name || 'Budynek';
+          const houseName = house.name || 'Building';
           const coordsStr = `${house.lat?.toFixed(4) || '?'}, ${house.lon?.toFixed(4) || '?'}`;
-          const noteHtml = obs.note ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px;font-style:italic;">${obs.note}</div>` : '';
-          const statusBadge = house.status === 'for_sale' ? '<span style="font-size:9px;background:var(--accent);color:white;padding:2px 5px;border-radius:4px;margin-left:6px;">Na sprzedaz</span>' : '';
+          const noteHtml = obs.note ? `<div style="font-size:10px;color:var(--text-muted);margin-top:2px;font-style:italic;">${escHtml(obs.note)}</div>` : '';
+          const statusBadge = house.status === 'for_sale' ? '<span style="font-size:9px;background:var(--accent);color:white;padding:2px 5px;border-radius:4px;margin-left:6px;">For sale</span>' : '';
 
           item.innerHTML = `
             <div style="flex:1;min-width:0;">
-              <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${houseName}${statusBadge}</div>
+              <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(houseName)}${statusBadge}</div>
               <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${coordsStr}</div>
               ${noteHtml}
             </div>
             <div style="display:flex;gap:6px;flex-shrink:0;">
-              <button class="btn fly-btn" data-idx="${i}" style="padding:6px 12px;font-size:11px;background:var(--accent);">Lec</button>
+              <button class="btn fly-btn" data-idx="${i}" style="padding:6px 12px;font-size:11px;background:var(--accent);">Fly</button>
               <button class="btn del-btn" data-idx="${i}" style="padding:6px 10px;font-size:11px;background:#ef4444;">X</button>
             </div>
           `;
@@ -170,7 +172,7 @@
             if (obs && obs.house) {
               flyToHouse(obs.house);
               if (typeof window.toast === 'function') {
-                window.toast(`Lece do: ${obs.house.name || 'budynku'}`);
+                window.toast(`Flying to: ${escHtml(obs.house.name || 'building')}`);
               }
             }
           });
@@ -194,9 +196,9 @@
     } catch (err) {
       console.error('[Observations] Load error:', err);
       if (err.code === 'AUTH_REQUIRED') {
-        obsList.innerHTML = '<div class="list-item" style="color:var(--text-muted);">Zaloguj sie, aby zobaczyc swoje obserwacje.</div>';
+        obsList.innerHTML = '<div class="list-item" style="color:var(--text-muted);">Log in to see your watchlist.</div>';
       } else {
-        obsList.innerHTML = '<div class="list-item" style="color:#f87171;">Blad ladowania</div>';
+        obsList.innerHTML = '<div class="list-item" style="color:#f87171;">Loading error</div>';
       }
     }
 
@@ -205,7 +207,7 @@
         const houseId = window.__selectedHouseId;
         if (!houseId) {
           if (typeof window.toast === 'function') {
-            window.toast('Najpierw wybierz budynek na mapie');
+            window.toast('First select a building on the map');
           }
           return;
         }

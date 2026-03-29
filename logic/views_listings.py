@@ -21,6 +21,8 @@ def api_listings(request):
     min_price = request.GET.get('min_price')
     max_price = request.GET.get('max_price')
     search = request.GET.get('search', '').strip()
+    if len(search) > 100:
+        return JsonResponse({'ok': False, 'error': 'SEARCH_TOO_LONG'}, status=400)
     page = request.GET.get('page', 1)
     per_page = request.GET.get('per_page', 20)
 

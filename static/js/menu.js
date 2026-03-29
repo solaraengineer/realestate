@@ -1,6 +1,8 @@
 (function() {
   'use strict';
 
+  function escHtml(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
   const menuPanel = document.getElementById('menuPanel');
   const menuContent = document.getElementById('menuContent');
   const menuToggle = document.getElementById('menuToggle');
@@ -91,7 +93,7 @@
       menuContent.querySelectorAll('.section').forEach(s => s.style.display = 'flex');
       menuContent.querySelectorAll('.section-body').forEach(s => s.style.display = 'flex');
     }
-    if (menuToggle) menuToggle.textContent = menuOpen ? 'Zwiń' : 'Rozwiń';
+    if (menuToggle) menuToggle.textContent = menuOpen ? 'Collapse' : 'Expand';
   }
 
   function setLoginMenuVisibility() {
@@ -141,8 +143,8 @@
 
     if (userInfo) {
       userInfo.textContent = userData.username
-        ? `Zalogowany: ${userData.username}`
-        : 'Zalogowany';
+        ? `Logged in: ${userData.username}`
+        : 'Logged in';
       userInfo.style.display = 'block';
     }
 
@@ -195,7 +197,7 @@
   if (forgotPass) {
     forgotPass.addEventListener('click', (e) => {
       e.preventDefault();
-      toast('Link do zmiany hasła wysłany na maila');
+      toast('Password reset link sent to your email');
     });
   }
 
@@ -207,14 +209,14 @@
       const password = passEl?.value || '';
 
       if (!email || !password) {
-        toast('Uzupełnij e-mail i hasło');
+        toast('Please enter email and password');
         emailEl?.focus();
         return;
       }
 
       const originalLabel = loginBtn.textContent;
       loginBtn.disabled = true;
-      loginBtn.textContent = 'Logowanie...';
+      loginBtn.textContent = 'Logging in...';
 
       try {
         const result = await Auth.login(email, password);
@@ -222,10 +224,10 @@
         document.querySelectorAll('#loginBody input').forEach(i => i.value = '');
 
         onLoginSuccess(result.user);
-        toast('Zalogowano pomyślnie');
+        toast('Logged in successfully');
       } catch (e) {
         console.warn('[Login] Error:', e);
-        toast(Auth.getErrorMessage(e.code) || e.message || 'Błąd logowania');
+        toast(Auth.getErrorMessage(e.code) || e.message || 'Login error');
       } finally {
         loginBtn.disabled = false;
         loginBtn.textContent = originalLabel;
@@ -241,7 +243,7 @@
   }
 
   if (regBtn) {
-    const originalRegLabel = regBtn.textContent || 'Utwórz konto';
+    const originalRegLabel = regBtn.textContent || 'Create Account';
 
     regBtn.addEventListener('click', async () => {
       const username = (document.getElementById('regUsername')?.value || '').trim();
@@ -252,25 +254,25 @@
       const referralEmail = (document.getElementById('regReferrer')?.value || '').trim();
 
       if (!username) {
-        toast('Podaj nazwę użytkownika');
+        toast('Enter a username');
         document.getElementById('regUsername')?.focus();
         return;
       }
       if (!email || !password || !password2) {
-        toast('Uzupełnij wszystkie pola');
+        toast('Please fill in all fields');
         return;
       }
       if (password !== password2) {
-        toast('Hasła nie pasują');
+        toast('Passwords do not match');
         return;
       }
       if (!acceptTerms) {
-        toast('Wymagana akceptacja regulaminu');
+        toast('You must accept the terms and conditions');
         return;
       }
 
       regBtn.disabled = true;
-      regBtn.textContent = 'Tworzenie konta...';
+      regBtn.textContent = 'Registering...';
 
       try {
         const result = await Auth.register({
@@ -288,10 +290,10 @@
         });
 
         onLoginSuccess(result.user);
-        toast('Konto utworzone i zalogowano');
+        toast('Account created!');
       } catch (e) {
         console.warn('[Register] Error:', e);
-        toast(Auth.getErrorMessage(e.code) || e.message || 'Błąd rejestracji');
+        toast(Auth.getErrorMessage(e.code) || e.message || 'Registration error');
       } finally {
         regBtn.disabled = false;
         regBtn.textContent = originalRegLabel;
@@ -314,7 +316,7 @@
         console.warn('[Logout] Error:', e);
       }
       onLogout();
-      toast('Wylogowano');
+      toast('Logged out');
     });
   }
 
@@ -337,22 +339,22 @@
           const saleToggle = document.getElementById('saleToggle');
           if (saleToggle && saleToggle.getAttribute('aria-pressed') !== 'true') {
             saleToggle.setAttribute('aria-pressed', 'true');
-            saleToggle.textContent = 'Ukryj oferty';
+            saleToggle.textContent = 'Hide offers';
             if (typeof window.loadListings === 'function') window.loadListings();
           }
           break;
 
         case 'homes':
           showPanel(appPanel, 'left');
-          document.getElementById('appPanelTitle').textContent = 'Moje domy';
-          document.getElementById('appPanelBody').innerHTML = '<p class="loading-text">Ładowanie...</p>';
+          document.getElementById('appPanelTitle').textContent = 'My Properties';
+          document.getElementById('appPanelBody').innerHTML = '<p class="loading-text">Loading...</p>';
           loadMyHouses();
           break;
 
         case 'transactions':
           showPanel(appPanel, 'left');
-          document.getElementById('appPanelTitle').textContent = 'Moje transakcje';
-          document.getElementById('appPanelBody').innerHTML = '<p class="loading-text">Ładowanie...</p>';
+          document.getElementById('appPanelTitle').textContent = 'My Transactions';
+          document.getElementById('appPanelBody').innerHTML = '<p class="loading-text">Loading...</p>';
           loadMyTransactions();
           break;
 
@@ -382,71 +384,71 @@
 
         case 'profile':
           showPanel(appPanel, 'left');
-          document.getElementById('appPanelTitle').textContent = 'Moje dane';
+          document.getElementById('appPanelTitle').textContent = 'My Profile';
           document.getElementById('appPanelBody').innerHTML = `
             <div class="profile-form">
               <div class="profile-section">
-                <div class="profile-section-title">Dane osobowe</div>
-                <label class="form-label">Imię
-                  <input class="input" type="text" id="profileFirstName" placeholder="Jan">
+                <div class="profile-section-title">Personal Information</div>
+                <label class="form-label">First Name
+                  <input class="input" type="text" id="profileFirstName" placeholder="John">
                 </label>
-                <label class="form-label">Nazwisko
-                  <input class="input" type="text" id="profileLastName" placeholder="Kowalski">
+                <label class="form-label">Last Name
+                  <input class="input" type="text" id="profileLastName" placeholder="Smith">
                 </label>
               </div>
 
               <div class="profile-section">
-                <div class="profile-section-title">Adres</div>
-                <label class="form-label">Adres
-                  <input class="input" type="text" id="profileAddress" placeholder="ul. Przykładowa 123/45">
+                <div class="profile-section-title">Address</div>
+                <label class="form-label">Address
+                  <input class="input" type="text" id="profileAddress" placeholder="123 Example Street">
                 </label>
-                <label class="form-label">Miasto
-                  <input class="input" type="text" id="profileCity" placeholder="Warszawa">
+                <label class="form-label">City
+                  <input class="input" type="text" id="profileCity" placeholder="London">
                 </label>
-                <label class="form-label">Kod pocztowy
+                <label class="form-label">Postal Code
                   <input class="input" type="text" id="profilePostalCode" placeholder="00-000">
                 </label>
-                <label class="form-label">Kraj
-                  <input class="input" type="text" id="profileCountry" placeholder="Polska">
+                <label class="form-label">Country
+                  <input class="input" type="text" id="profileCountry" placeholder="United Kingdom">
                 </label>
               </div>
 
               <div class="profile-section">
-                <div class="profile-section-title">Dane do faktury</div>
-                <label class="form-label">Nazwa firmy (opcjonalnie)
-                  <input class="input" type="text" id="profileCompanyName" placeholder="Firma Sp. z o.o.">
+                <div class="profile-section-title">Billing Information</div>
+                <label class="form-label">Company (optional)
+                  <input class="input" type="text" id="profileCompanyName" placeholder="Company Ltd.">
                 </label>
-                <label class="form-label">NIP (opcjonalnie)
+                <label class="form-label">VAT Number (optional)
                   <input class="input" type="text" id="profileVatNumber" placeholder="PL1234567890">
                 </label>
               </div>
 
               <div class="profile-section">
-                <div class="profile-section-title">Bezpieczeństwo</div>
-                <label class="form-label">Obecne hasło
+                <div class="profile-section-title">Security</div>
+                <label class="form-label">Current Password
                   <input class="input" type="password" id="profileCurrentPassword" placeholder="••••••••">
                 </label>
-                <label class="form-label">Nowe hasło
+                <label class="form-label">New Password
                   <input class="input" type="password" id="profileNewPassword" placeholder="••••••••">
                 </label>
-                <label class="form-label">Potwierdź nowe hasło
+                <label class="form-label">Confirm New Password
                   <input class="input" type="password" id="profileConfirmPassword" placeholder="••••••••">
                 </label>
                 <label class="checkbox-row">
                   <input type="checkbox" id="profileTwoFactor">
-                  <span>Włącz weryfikację dwuetapową (2FA)</span>
+                  <span>Enable Two-Factor Authentication (2FA)</span>
                 </label>
               </div>
 
               <div class="profile-section">
-                <div class="profile-section-title">Stripe - Platnosci</div>
+                <div class="profile-section-title">Stripe - Payments</div>
                 <div id="stripeStatusSection" style="padding:8px 0;">
-                  <p style="color:var(--text-muted);font-size:13px;">Ladowanie statusu Stripe...</p>
+                  <p style="color:var(--text-muted);font-size:13px;">Loading Stripe status...</p>
                 </div>
-                <button class="btn" id="stripeOnboardBtn" style="background:#635bff;width:100%;margin-top:8px;">Konfiguruj Stripe</button>
+                <button class="btn" id="stripeOnboardBtn" style="background:#635bff;width:100%;margin-top:8px;">Configure Stripe</button>
               </div>
 
-              <button class="btn-save" id="saveProfileBtn">Zapisz zmiany</button>
+              <button class="btn-save" id="saveProfileBtn">Save Changes</button>
             </div>
           `;
           loadProfileData();
@@ -512,8 +514,8 @@
 
         if (userInfo) {
           userInfo.textContent = session.user.username
-            ? `Zalogowany: ${session.user.username}`
-            : 'Zalogowany';
+            ? `Logged in: ${session.user.username}`
+            : 'Logged in';
         }
 
         setLoginMenuVisibility();
@@ -563,7 +565,7 @@
       console.log('[MyHouses] Data:', data);
 
       if (!data.ok) {
-        body.innerHTML = `<p style="color:var(--danger);">Error: ${data.error || 'unknown'}</p>`;
+        body.innerHTML = `<p style="color:var(--danger);">Error: ${escHtml(data.error) || 'unknown'}</p>`;
         return;
       }
 
@@ -579,7 +581,7 @@
           : `<span class="status-badge not-listed">Not Listed</span>`;
 
         const priceDisplay = h.has_listing && h.listing_price
-          ? `<div class="price">${Number(h.listing_price).toLocaleString('en-US')} ${h.listing_currency || 'PLN'}</div>`
+          ? `<div class="price">${Number(h.listing_price).toLocaleString('en-US')} ${escHtml(h.listing_currency) || 'PLN'}</div>`
           : '';
 
         const sharesListed = h.has_listing && h.listing_shares
@@ -590,24 +592,24 @@
         if (h.has_listing) {
           actionsHtml = `
             <div class="house-actions">
-              <button class="btn-action btn-edit-price" data-id-fme="${h.id_fme}" data-listing-id="${h.listing_id}" data-current-shares="${h.listing_shares || h.shares}">Edit Price</button>
-              <button class="btn-action btn-edit-shares" data-id-fme="${h.id_fme}" data-listing-id="${h.listing_id}" data-max-shares="${h.shares}" data-current-price="${h.listing_price || 0}">Edit Shares</button>
-              <button class="btn-action btn-cancel-listing" data-id-fme="${h.id_fme}">Cancel Listing</button>
+              <button class="btn-action btn-edit-price" data-id-fme="${escHtml(h.id_fme)}" data-listing-id="${escHtml(h.listing_id)}" data-current-shares="${escHtml(h.listing_shares || h.shares)}">Edit Price</button>
+              <button class="btn-action btn-edit-shares" data-id-fme="${escHtml(h.id_fme)}" data-listing-id="${escHtml(h.listing_id)}" data-max-shares="${escHtml(h.shares)}" data-current-price="${escHtml(h.listing_price || 0)}">Edit Shares</button>
+              <button class="btn-action btn-cancel-listing" data-id-fme="${escHtml(h.id_fme)}">Cancel Listing</button>
             </div>
           `;
         } else {
           actionsHtml = `
             <div class="house-actions">
-              <button class="btn-action btn-go-live" data-id-fme="${h.id_fme}" data-max-shares="${h.shares}">Go Live</button>
+              <button class="btn-action btn-go-live" data-id-fme="${escHtml(h.id_fme)}" data-max-shares="${escHtml(h.shares)}">Go Live</button>
             </div>
           `;
         }
 
         html += `
-          <div class="house-card" data-lat="${h.lat || ''}" data-lon="${h.lon || ''}" data-id-fme="${h.id_fme || ''}">
+          <div class="house-card" data-lat="${escHtml(h.lat) || ''}" data-lon="${escHtml(h.lon) || ''}" data-id-fme="${escHtml(h.id_fme) || ''}">
             <div class="house-card-header">
               <div class="card-left">
-                <div class="house-name">${h.name || 'Property'}</div>
+                <div class="house-name">${escHtml(h.name) || 'Property'}</div>
                 <div class="house-shares">${h.shares}/${h.total_shares} shares (${h.percent}%)</div>
                 ${sharesListed}
               </div>
@@ -859,7 +861,7 @@
 
     } catch (e) {
       console.error('[MyHouses] Error:', e);
-      body.innerHTML = `<p style="color:var(--danger);">Error: ${e.message}</p>`;
+      body.innerHTML = `<p style="color:var(--danger);">Error: ${escHtml(e.message)}</p>`;
     }
   }
 
@@ -872,43 +874,43 @@
       const data = await res.json();
 
       if (!data.ok) {
-        body.innerHTML = '<p style="color:var(--danger);">Błąd ładowania</p>';
+        body.innerHTML = '<p style="color:var(--danger);">Loading error</p>';
         return;
       }
 
       if (!data.transactions || data.transactions.length === 0) {
-        body.innerHTML = '<p style="color:var(--text-muted)">Brak transakcji.</p>';
+        body.innerHTML = '<p style="color:var(--text-muted)">No transactions.</p>';
         return;
       }
 
       let html = '<div class="cards-list">';
       for (const t of data.transactions) {
         const isBuyer = t.role === 'buyer';
-        const roleLabel = isBuyer ? 'Kupno' : 'Sprzedaż';
+        const roleLabel = isBuyer ? 'Purchase' : 'Sale';
         const badgeClass = isBuyer ? 'bought' : 'sold';
-        const dateStr = t.created_at ? new Date(t.created_at).toLocaleDateString('pl-PL', {
+        const dateStr = t.created_at ? new Date(t.created_at).toLocaleDateString('en-US', {
           day: 'numeric',
           month: 'short',
           year: 'numeric'
         }) : '';
 
         const counterpartyText = t.counterparty
-          ? (isBuyer ? 'od: ' : 'do: ') + t.counterparty
+          ? (isBuyer ? 'from: ' : 'to: ') + t.counterparty
           : '';
 
-        const sharesText = t.shares ? `${t.shares} ${t.shares === 1 ? 'udział' : (t.shares < 5 ? 'udziały' : 'udziałów')}` : '';
+        const sharesText = t.shares ? `${t.shares} ${t.shares === 1 ? 'share' : 'shares'}` : '';
 
         html += `
-          <div class="transaction-item" data-lat="${t.house_lat || ''}" data-lon="${t.house_lon || ''}" data-id-fme="${t.house_id_fme || ''}">
+          <div class="transaction-item" data-lat="${escHtml(t.house_lat) || ''}" data-lon="${escHtml(t.house_lon) || ''}" data-id-fme="${escHtml(t.house_id_fme) || ''}">
             <div class="card-left">
-              <div class="tx-name">${t.house_name || 'Dom'}</div>
+              <div class="tx-name">${escHtml(t.house_name) || 'Property'}</div>
               <div class="tx-shares">${sharesText}</div>
-              <div class="tx-counterparty">${counterpartyText}</div>
+              <div class="tx-counterparty">${escHtml(counterpartyText)}</div>
               <div class="tx-date">${dateStr}</div>
             </div>
             <div class="card-right">
               <span class="status-badge ${badgeClass}">${roleLabel}</span>
-              <div class="price">${t.amount ? t.amount.toLocaleString('pl-PL') : '—'} ${t.currency || 'PLN'}</div>
+              <div class="price">${t.amount ? t.amount.toLocaleString('en-US') : '—'} ${escHtml(t.currency) || 'PLN'}</div>
             </div>
           </div>
         `;
@@ -937,7 +939,7 @@
 
     } catch (e) {
       console.error('[MyTransactions]', e);
-      body.innerHTML = '<p style="color:var(--danger);">Błąd połączenia</p>';
+      body.innerHTML = '<p style="color:var(--danger);">Connection error</p>';
     }
   }
 
@@ -990,7 +992,7 @@
     const confirmPassword = document.getElementById('profileConfirmPassword')?.value || '';
 
     if (newPassword && newPassword !== confirmPassword) {
-      toast('Hasła nie są takie same');
+      toast('Passwords do not match');
       return;
     }
 
@@ -1009,7 +1011,7 @@
     };
 
     btn.disabled = true;
-    btn.textContent = 'Zapisywanie...';
+    btn.textContent = 'Saving...';
 
     try {
       const res = await fetch('/api/profile/', {
@@ -1032,13 +1034,13 @@
       document.getElementById('profileNewPassword').value = '';
       document.getElementById('profileConfirmPassword').value = '';
 
-      toast('Dane zapisane');
+      toast('Saved!');
     } catch (e) {
       console.error('[Profile] Save error:', e);
-      toast(e.message || 'Błąd zapisywania');
+      toast(e.message || 'Save error');
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Zapisz zmiany';
+      btn.textContent = 'Save Changes';
     }
   }
 
@@ -1052,7 +1054,7 @@
       const data = await res.json();
 
       if (!res.ok || !data.ok) {
-        statusSection.innerHTML = '<p style="color:#ef4444;font-size:13px;">Blad ladowania statusu</p>';
+        statusSection.innerHTML = '<p style="color:#ef4444;font-size:13px;">Error loading status</p>';
         return;
       }
 
@@ -1060,42 +1062,42 @@
       if (!data.connected) {
         statusHtml = `
           <div style="padding:10px;background:rgba(255,200,0,0.1);border-radius:8px;margin-bottom:8px;">
-            <p style="font-weight:600;color:#ca8a04;margin-bottom:4px;">Stripe nie skonfigurowany</p>
-            <p style="font-size:12px;color:var(--text-muted);">Musisz skonfigurowac Stripe aby kupowac i sprzedawac nieruchomosci.</p>
+            <p style="font-weight:600;color:#ca8a04;margin-bottom:4px;">Stripe not configured</p>
+            <p style="font-size:12px;color:var(--text-muted);">You need to configure Stripe to buy and sell properties.</p>
           </div>
         `;
         if (onboardBtn) {
-          onboardBtn.textContent = 'Rozpocznij konfiguracje Stripe';
+          onboardBtn.textContent = 'Start Stripe Configuration';
           onboardBtn.style.display = 'block';
         }
       } else if (!data.kyc_complete) {
         statusHtml = `
           <div style="padding:10px;background:rgba(255,200,0,0.1);border-radius:8px;margin-bottom:8px;">
-            <p style="font-weight:600;color:#ca8a04;margin-bottom:4px;">Weryfikacja w toku</p>
-            <p style="font-size:12px;color:var(--text-muted);">Twoje konto Stripe wymaga dodatkowej weryfikacji.</p>
+            <p style="font-weight:600;color:#ca8a04;margin-bottom:4px;">Verification in progress</p>
+            <p style="font-size:12px;color:var(--text-muted);">Your Stripe account requires additional verification.</p>
             <div style="margin-top:8px;font-size:11px;">
-              <span style="margin-right:12px;">Platnosci: ${data.charges_enabled ? '✅' : '❌'}</span>
-              <span>Wypłaty: ${data.payouts_enabled ? '✅' : '❌'}</span>
+              <span style="margin-right:12px;">Payments: ${data.charges_enabled ? '✅' : '❌'}</span>
+              <span>Payouts: ${data.payouts_enabled ? '✅' : '❌'}</span>
             </div>
           </div>
         `;
         if (onboardBtn) {
-          onboardBtn.textContent = 'Dokoncz weryfikacje';
+          onboardBtn.textContent = 'Complete Verification';
           onboardBtn.style.display = 'block';
         }
       } else {
         statusHtml = `
           <div style="padding:10px;background:rgba(34,197,94,0.1);border-radius:8px;margin-bottom:8px;">
-            <p style="font-weight:600;color:#16a34a;margin-bottom:4px;">✅ Stripe aktywny</p>
-            <p style="font-size:12px;color:var(--text-muted);">Twoje konto jest w pelni skonfigurowane.</p>
+            <p style="font-weight:600;color:#16a34a;margin-bottom:4px;">Stripe active</p>
+            <p style="font-size:12px;color:var(--text-muted);">Your account is fully configured.</p>
             <div style="margin-top:8px;font-size:11px;">
-              <span style="margin-right:12px;">Platnosci: ✅</span>
-              <span>Wypłaty: ✅</span>
+              <span style="margin-right:12px;">Payments: ✅</span>
+              <span>Payouts: ✅</span>
             </div>
           </div>
         `;
         if (onboardBtn) {
-          onboardBtn.textContent = 'Zarzadzaj kontem Stripe';
+          onboardBtn.textContent = 'Manage Stripe Account';
           onboardBtn.style.display = 'block';
         }
       }
@@ -1104,7 +1106,7 @@
 
     } catch (e) {
       console.error('[Stripe Status] Error:', e);
-      statusSection.innerHTML = '<p style="color:#ef4444;font-size:13px;">Blad polaczenia</p>';
+      statusSection.innerHTML = '<p style="color:#ef4444;font-size:13px;">Connection error</p>';
     }
   }
 
@@ -1113,7 +1115,7 @@
     if (!btn) return;
 
     btn.disabled = true;
-    btn.textContent = 'Ladowanie...';
+    btn.textContent = 'Loading...';
 
     try {
       const res = await fetch('/api/stripe/onboard/', {
@@ -1129,13 +1131,13 @@
 
       if (!res.ok || !data.ok) {
         if (data.already_complete) {
-          toast('Twoje konto Stripe jest juz w pelni skonfigurowane!');
+          toast('Your Stripe account is already fully configured!');
           loadStripeStatus();
         } else {
-          toast(data.error || 'Blad uruchamiania Stripe');
+          toast(data.error || 'Error starting Stripe');
         }
         btn.disabled = false;
-        btn.textContent = 'Konfiguruj Stripe';
+        btn.textContent = 'Configure Stripe';
         return;
       }
 
@@ -1145,9 +1147,9 @@
 
     } catch (e) {
       console.error('[Stripe Onboard] Error:', e);
-      toast('Blad polaczenia');
+      toast('Connection error');
       btn.disabled = false;
-      btn.textContent = 'Konfiguruj Stripe';
+      btn.textContent = 'Configure Stripe';
     }
   }
 

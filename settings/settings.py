@@ -28,6 +28,8 @@ STATICFILES_DIRS = [
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+REDIS_URL = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/0')
+
 RECAPTCHA_SECRET_KEY = os.getenv('RECAPTCHA_SECRET_KEY')
 
 DATABASES = {
@@ -60,7 +62,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [f"redis://{os.getenv('REDIS_HOST', '127.0.0.1')}:{os.getenv('REDIS_PORT', 6379)}/0"],
+            "hosts": [REDIS_URL],
         },
     },
 }
@@ -68,7 +70,7 @@ CHANNEL_LAYERS = {
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"redis://{os.getenv('REDIS_HOST', '127.0.0.1')}:{os.getenv('REDIS_PORT', 6379)}/0",
+        "LOCATION": REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
@@ -121,12 +123,12 @@ USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-CSRF_TRUSTED_ORIGINS = ['https://cryptoearthcoin.com', 'https://www.cryptoearthcoin.com', 'http://3.120.82.242', 'https://3.120.82.242', 'http://18.156.60.42', 'https://18.156.60.42']
+CSRF_TRUSTED_ORIGINS = ['https://homiverse.world', 'https://www.homiverse.world', 'http://3.120.82.242', 'https://3.120.82.242', 'http://18.156.60.42', 'https://18.156.60.42']
 SECURE_SSL_REDIRECT = False
 USE_X_FORWARDED_HOST = True
 
-CELERY_BROKER_URL = f"redis://:{os.getenv('REDIS_PASSWORD', '')}@{os.getenv('REDIS_HOST', 'redis')}:{os.getenv('REDIS_PORT', 6379)}/1"
-CELERY_RESULT_BACKEND = f"redis://:{os.getenv('REDIS_PASSWORD', '')}@{os.getenv('REDIS_HOST', 'redis')}:{os.getenv('REDIS_PORT', 6379)}/1"
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
@@ -141,7 +143,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('GOOGLE_SMTP_USER', 'AND_HERE')
 EMAIL_HOST_PASSWORD = os.getenv('GOOGLE_SMTP_PASSWORD', 'SAME_HERE')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'YOUR_EMAIL_HERE_OR_.ENV')
-EMAIL_SUBJECT_PREFIX = '[bitearthcoin.com]'
+EMAIL_SUBJECT_PREFIX = '[homiverse.world]'
 
 JWT_ALGORITHM = "RS256"
 JWT_EXPIRY_HOURS = 24

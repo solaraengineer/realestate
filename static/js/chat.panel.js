@@ -760,7 +760,7 @@
 
   function showError(message) {
     if (window.Modal) {
-      window.Modal.alert(message, 'Błąd', 'error');
+      window.Modal.alert(message, 'Error', 'error');
     } else if (window.toast) {
       window.toast(message);
     }

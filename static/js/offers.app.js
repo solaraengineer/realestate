@@ -1,6 +1,8 @@
 (function() {
   'use strict';
 
+  function escHtml(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
   const saleBody = document.getElementById('saleBody');
   const saleToggle = document.getElementById('saleToggle');
   const saleMin = document.getElementById('saleMin');
@@ -22,7 +24,7 @@
     saleToggle.addEventListener('click', function() {
       const active = this.getAttribute('aria-pressed') === 'true';
       this.setAttribute('aria-pressed', String(!active));
-      this.textContent = active ? 'Pokaż oferty sprzedaży' : 'Ukryj oferty';
+      this.textContent = active ? 'Show Sale Offers' : 'Hide Offers';
 
       if (!active) {
         loadListings();
@@ -54,14 +56,14 @@
     if (saleMin && saleMin.value) params.set('min_price', saleMin.value);
     if (saleMax && saleMax.value) params.set('max_price', saleMax.value);
 
-    listingsContainer.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:8px;">Ładowanie...</p>';
+    listingsContainer.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:8px;">Loading...</p>';
 
     try {
       const res = await fetch('/api/listings/?' + params.toString());
       const data = await res.json();
 
       if (!data.ok) {
-        listingsContainer.innerHTML = '<p style="color:#f87171;padding:8px;">Błąd ładowania</p>';
+        listingsContainer.innerHTML = '<p style="color:#f87171;padding:8px;">Loading error</p>';
         isLoading = false;
         return;
       }
@@ -69,7 +71,7 @@
       renderListings(data.listings, data.page, data.pages, data.total);
     } catch (e) {
       console.error('[Offers]', e);
-      listingsContainer.innerHTML = '<p style="color:#f87171;padding:8px;">Błąd połączenia</p>';
+      listingsContainer.innerHTML = '<p style="color:#f87171;padding:8px;">Connection error</p>';
     }
 
     isLoading = false;
@@ -77,7 +79,7 @@
 
   function renderListings(listings, page, pages, total) {
     if (!listings || !listings.length) {
-      listingsContainer.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:8px;">Brak ofert</p>';
+      listingsContainer.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:8px;">No offers</p>';
       return;
     }
 
@@ -85,14 +87,14 @@
 
     for (let i = 0; i < listings.length; i++) {
       const l = listings[i];
-      html += '<div class="listing-item" data-id="' + l.id + '" data-house="' + l.house_id + '" data-lat="' + (l.house_lat || '') + '" data-lon="' + (l.house_lon || '') + '">';
+      html += '<div class="listing-item" data-id="' + escHtml(l.id) + '" data-house="' + escHtml(l.house_id) + '" data-lat="' + escHtml(l.house_lat || '') + '" data-lon="' + escHtml(l.house_lon || '') + '">';
       html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
       html += '<div>';
-      html += '<div style="font-weight:600;font-size:13px;">' + (l.house_name || 'Dom') + '</div>';
-      html += '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">' + l.share_count + ' ' + (l.share_count === 1 ? 'udział' : 'udziałów') + '</div>';
+      html += '<div style="font-weight:600;font-size:13px;">' + escHtml(l.house_name || 'Property') + '</div>';
+      html += '<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">' + escHtml(l.share_count) + ' ' + (l.share_count === 1 ? 'share' : 'shares') + '</div>';
       html += '</div>';
       html += '<div style="text-align:right;">';
-      html += '<div style="font-weight:700;font-size:14px;color:var(--accent);">' + formatPrice(l.price) + ' ' + l.currency + '</div>';
+      html += '<div style="font-weight:700;font-size:14px;color:var(--accent);">' + escHtml(formatPrice(l.price)) + ' ' + escHtml(l.currency) + '</div>';
       html += '</div>';
       html += '</div>';
       html += '</div>';
@@ -101,16 +103,16 @@
     if (pages > 1) {
       html += '<div style="display:flex;justify-content:center;gap:8px;margin-top:10px;">';
       if (page > 1) {
-        html += '<button class="btn-ghost page-btn" data-page="' + (page - 1) + '" style="padding:4px 10px;font-size:11px;">←</button>';
+        html += '<button class="btn-ghost page-btn" data-page="' + escHtml(page - 1) + '" style="padding:4px 10px;font-size:11px;">&#8592;</button>';
       }
-      html += '<span style="padding:4px 10px;font-size:11px;color:var(--text-muted);">' + page + ' / ' + pages + '</span>';
+      html += '<span style="padding:4px 10px;font-size:11px;color:var(--text-muted);">' + escHtml(page) + ' / ' + escHtml(pages) + '</span>';
       if (page < pages) {
-        html += '<button class="btn-ghost page-btn" data-page="' + (page + 1) + '" style="padding:4px 10px;font-size:11px;">→</button>';
+        html += '<button class="btn-ghost page-btn" data-page="' + escHtml(page + 1) + '" style="padding:4px 10px;font-size:11px;">&#8594;</button>';
       }
       html += '</div>';
     }
 
-    html += '<div style="text-align:center;margin-top:6px;font-size:10px;color:var(--text-muted);">' + total + ' ofert</div>';
+    html += '<div style="text-align:center;margin-top:6px;font-size:10px;color:var(--text-muted);">' + escHtml(total) + ' offers</div>';
 
     listingsContainer.innerHTML = html;
 
@@ -155,7 +157,7 @@
   }
 
   function formatPrice(price) {
-    return Number(price).toLocaleString('pl-PL');
+    return Number(price).toLocaleString('en-US');
   }
 
   window.loadListings = loadListings;

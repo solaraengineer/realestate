@@ -1,3 +1,5 @@
+import html
+
 from celery import shared_task
 from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
@@ -42,31 +44,31 @@ def welcome_email_html(username, email, created_at):
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome to CryptoEarthCoin</title>
+        <title>Welcome to Homiverse</title>
         <style>{styles}</style>
     </head>
     <body>
         <div class="container">
             <div class="card">
                 <div class="logo">
-                    <span class="logo-text">CryptoEarthCoin</span>
+                    <span class="logo-text">Homiverse</span>
                 </div>
 
-                <h1>Welcome to CryptoEarthCoin!</h1>
+                <h1>Welcome to Homiverse!</h1>
 
-                <p>Hi <span class="highlight">{username}</span>,</p>
+                <p>Hi <span class="highlight">{html.escape(username)}</span>,</p>
 
-                <p>Thank you for joining CryptoEarthCoin - the future of real estate investment on the blockchain. Your account has been successfully created.</p>
+                <p>Thank you for joining Homiverse - the future of real estate investment on the blockchain. Your account has been successfully created.</p>
 
                 <div class="info-box">
                     <table>
                         <tr>
                             <td class="label-td">Username</td>
-                            <td class="value-td">{username}</td>
+                            <td class="value-td">{html.escape(username)}</td>
                         </tr>
                         <tr>
                             <td class="label-td">Email</td>
-                            <td class="value-td">{email}</td>
+                            <td class="value-td">{html.escape(email)}</td>
                         </tr>
                         <tr>
                             <td class="label-td">Account Created</td>
@@ -77,10 +79,10 @@ def welcome_email_html(username, email, created_at):
 
                 <p>To start buying and selling property shares, you'll need to complete Stripe verification. This ensures secure transactions for all users.</p>
 
-                <a href="https://cryptoearthcoin.com" class="btn">Go to Dashboard</a>
+                <a href="https://homiverse.world" class="btn">Go to Dashboard</a>
 
                 <div class="footer">
-                    <p>CryptoEarthCoin - Real Estate on the Blockchain</p>
+                    <p>Homiverse - Real Estate on the Blockchain</p>
                     <p>If you didn't create this account, please ignore this email.</p>
                 </div>
             </div>
@@ -95,11 +97,11 @@ def welcome_email_text(username, email, created_at):
     formatted_date = created_at.strftime('%d %B %Y, %H:%M UTC')
 
     return f"""
-Welcome to CryptoEarthCoin!
+Welcome to Homiverse!
 
 Hi {username},
 
-Thank you for joining CryptoEarthCoin - the future of real estate investment on the blockchain. Your account has been successfully created.
+Thank you for joining Homiverse - the future of real estate investment on the blockchain. Your account has been successfully created.
 
 Account Details:
 - Username: {username}
@@ -108,10 +110,10 @@ Account Details:
 
 To start buying and selling property shares, you'll need to complete Stripe verification.
 
-Visit: https://cryptoearthcoin.com
+Visit: https://homiverse.world
 
 ---
-CryptoEarthCoin - Real Estate on the Blockchain
+Homiverse - Real Estate on the Blockchain
 If you didn't create this account, please ignore this email.
     """
 
@@ -135,7 +137,7 @@ def transaction_email_html(transaction_id, house_name, shares, amount, currency,
         <div class="container">
             <div class="card">
                 <div class="logo">
-                    <span class="logo-text">CryptoEarthCoin</span>
+                    <span class="logo-text">Homiverse</span>
                 </div>
 
                 <div style="text-align: center; margin-bottom: 24px;">
@@ -154,7 +156,7 @@ def transaction_email_html(transaction_id, house_name, shares, amount, currency,
                         </tr>
                         <tr>
                             <td class="label-td">Property</td>
-                            <td class="value-td">{house_name}</td>
+                            <td class="value-td">{html.escape(house_name)}</td>
                         </tr>
                         <tr>
                             <td class="label-td">Shares Purchased</td>
@@ -166,7 +168,7 @@ def transaction_email_html(transaction_id, house_name, shares, amount, currency,
                         </tr>
                         <tr>
                             <td class="label-td">Seller</td>
-                            <td class="value-td">{seller_username}</td>
+                            <td class="value-td">{html.escape(seller_username)}</td>
                         </tr>
                         <tr>
                             <td class="label-td">Date</td>
@@ -177,10 +179,10 @@ def transaction_email_html(transaction_id, house_name, shares, amount, currency,
 
                 <p>Your shares have been added to your portfolio. You can view your holdings in the dashboard.</p>
 
-                <a href="https://cryptoearthcoin.com" class="btn">View Portfolio</a>
+                <a href="https://homiverse.world" class="btn">View Portfolio</a>
 
                 <div class="footer">
-                    <p>CryptoEarthCoin - Real Estate on the Blockchain</p>
+                    <p>Homiverse - Real Estate on the Blockchain</p>
                     <p>This is an automated confirmation. Please keep this for your records.</p>
                 </div>
             </div>
@@ -196,7 +198,7 @@ def transaction_email_text(transaction_id, house_name, shares, amount, currency,
     formatted_amount = f"{amount:,.2f} {currency}"
 
     return f"""
-Transaction Confirmed - CryptoEarthCoin
+Transaction Confirmed - Homiverse
 
 Your purchase has been completed successfully!
 
@@ -210,10 +212,10 @@ Transaction Details:
 
 Your shares have been added to your portfolio.
 
-View your portfolio at: https://cryptoearthcoin.com
+View your portfolio at: https://homiverse.world
 
 ---
-CryptoEarthCoin - Real Estate on the Blockchain
+Homiverse - Real Estate on the Blockchain
 This is an automated confirmation. Please keep this for your records.
     """
 
@@ -237,7 +239,7 @@ def sale_notification_email_html(transaction_id, house_name, shares, amount, cur
         <div class="container">
             <div class="card">
                 <div class="logo">
-                    <span class="logo-text">CryptoEarthCoin</span>
+                    <span class="logo-text">Homiverse</span>
                 </div>
 
                 <div style="text-align: center; margin-bottom: 24px;">
@@ -256,7 +258,7 @@ def sale_notification_email_html(transaction_id, house_name, shares, amount, cur
                         </tr>
                         <tr>
                             <td class="label-td">Property</td>
-                            <td class="value-td">{house_name}</td>
+                            <td class="value-td">{html.escape(house_name)}</td>
                         </tr>
                         <tr>
                             <td class="label-td">Shares Sold</td>
@@ -268,7 +270,7 @@ def sale_notification_email_html(transaction_id, house_name, shares, amount, cur
                         </tr>
                         <tr>
                             <td class="label-td">Buyer</td>
-                            <td class="value-td">{buyer_username}</td>
+                            <td class="value-td">{html.escape(buyer_username)}</td>
                         </tr>
                         <tr>
                             <td class="label-td">Date</td>
@@ -279,10 +281,10 @@ def sale_notification_email_html(transaction_id, house_name, shares, amount, cur
 
                 <p>The payment will be transferred to your Stripe account shortly (minus platform fees).</p>
 
-                <a href="https://cryptoearthcoin.com" class="btn">View Transactions</a>
+                <a href="https://homiverse.world" class="btn">View Transactions</a>
 
                 <div class="footer">
-                    <p>CryptoEarthCoin - Real Estate on the Blockchain</p>
+                    <p>Homiverse - Real Estate on the Blockchain</p>
                     <p>This is an automated notification.</p>
                 </div>
             </div>
@@ -298,7 +300,7 @@ def sale_notification_email_text(transaction_id, house_name, shares, amount, cur
     formatted_amount = f"{amount:,.2f} {currency}"
 
     return f"""
-You Made a Sale! - CryptoEarthCoin
+You Made a Sale! - Homiverse
 
 Congratulations! Someone purchased shares from your listing.
 
@@ -312,10 +314,10 @@ Sale Details:
 
 The payment will be transferred to your Stripe account shortly (minus platform fees).
 
-View your transactions at: https://cryptoearthcoin.com
+View your transactions at: https://homiverse.world
 
 ---
-CryptoEarthCoin - Real Estate on the Blockchain
+Homiverse - Real Estate on the Blockchain
 This is an automated notification.
     """
 
@@ -335,7 +337,7 @@ def send_welcome_email(self, user_id):
         return {'status': 'error', 'message': 'User not found'}
 
     try:
-        subject = 'Welcome to CryptoEarthCoin!'
+        subject = 'Welcome to Homiverse!'
         text_content = welcome_email_text(
             username=user.username,
             email=user.email,

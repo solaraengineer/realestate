@@ -397,13 +397,13 @@ def handle_checkout_completed(session):
         buyer_ownership, created = HouseOwnership.objects.get_or_create(
             house_id=house_id,
             user_id=buyer_id,
-            defaults={'shares': shares, 'bought_for': int(session.get('amount_total', 0) / 100)}
+            defaults={'shares': shares, 'bought_for': Decimal(str(session.get('amount_total', 0))) / 100}
         )
         if not created:
             HouseOwnership.objects.filter(id=buyer_ownership.id).update(shares=F('shares') + shares)
             if not buyer_ownership.bought_for:
                 HouseOwnership.objects.filter(id=buyer_ownership.id).update(
-                    bought_for=int(session.get('amount_total', 0) / 100)
+                    bought_for=Decimal(str(session.get('amount_total', 0))) / 100
                 )
 
         try:

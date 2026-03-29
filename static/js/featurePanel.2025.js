@@ -43,6 +43,8 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
 
 
 
+function escHtml(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
 (function () {
   console.log('[FeaturePanel v4] loaded ver 1.3');
 
@@ -82,7 +84,7 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
       btnSetVP.addEventListener('click', async () => {
         const me = await whoamiId();
         if (!me) {
-          if (typeof window.toast === 'function') window.toast('Zaloguj sie');
+          if (typeof window.toast === 'function') window.toast('Log in');
           return;
         }
 
@@ -119,14 +121,14 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
           });
           const data = await resp.json();
           if (resp.ok && data.ok) {
-            if (typeof window.toast === 'function') window.toast('Viewpoint zapisany!');
+            if (typeof window.toast === 'function') window.toast('Viewpoint saved!');
             if (typeof window.renderViewpoints === 'function') window.renderViewpoints();
           } else {
             throw new Error(data.error || 'Failed');
           }
         } catch (e) {
           console.error('[FeaturePanel] Set viewpoint error:', e);
-          if (typeof window.toast === 'function') window.toast('Blad zapisu viewpointu');
+          if (typeof window.toast === 'function') window.toast('Error saving viewpoint');
         }
       });
     }
@@ -136,13 +138,13 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
       btnWatch.addEventListener('click', async () => {
         const me = await whoamiId();
         if (!me) {
-          if (typeof window.toast === 'function') window.toast('Zaloguj sie');
+          if (typeof window.toast === 'function') window.toast('Log in');
           return;
         }
 
         const houseId = window.__lastPickedIdFME;
         if (!houseId) {
-          if (typeof window.toast === 'function') window.toast('Brak wybranego budynku');
+          if (typeof window.toast === 'function') window.toast('No building selected');
           return;
         }
 
@@ -163,7 +165,7 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
           const data = await resp.json();
           if (resp.ok && data.ok) {
             if (typeof window.toast === 'function') {
-              window.toast(data.updated ? 'Obserwacja zaktualizowana!' : 'Dodano do obserwowanych!');
+              window.toast(data.updated ? 'Watchlist updated!' : 'Added to watchlist!');
             }
             if (typeof window.renderObservations === 'function') window.renderObservations();
           } else {
@@ -171,7 +173,7 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
           }
         } catch (e) {
           console.error('[FeaturePanel] Observe error:', e);
-          if (typeof window.toast === 'function') window.toast('Blad dodawania obserwacji');
+          if (typeof window.toast === 'function') window.toast('Error adding to watchlist');
         }
       });
     }
@@ -224,7 +226,7 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
       console.log('[DEBUG feature]', obj);
 
       let h = '';
-      const add = (k,v)=>{ h += `<div class="prop"><div class="k">${k}</div><div>${v==null?'':String(v)}</div></div>`; };
+      const add = (k,v)=>{ h += `<div class="prop"><div class="k">${escHtml(k)}</div><div>${v==null?'':escHtml(String(v))}</div></div>`; };
 
       try {
         if (obj && (obj._batchId || obj._batchId===0)) add('batchId', obj._batchId);
@@ -307,7 +309,7 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
         } catch(_){}
       }
 
-      if (h === '') h = '<div class="prop"><div class="k">Brak właściwości</div><div></div></div>';
+      if (h === '') h = '<div class="prop"><div class="k">No properties</div><div></div></div>';
       return h;
     }
 
@@ -316,14 +318,14 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
         return listProps(obj);
       } catch (e) {
         console.error('[FeaturePanel] listProps error:', e);
-        return '<div class="prop"><div class="k">Błąd odczytu właściwości</div><div>szczegóły w konsoli</div></div>';
+        return '<div class="prop"><div class="k">Error reading properties</div><div>details in console</div></div>';
       }
     }
 
     function showPropsFor(picked){
       if (!Cesium.defined(picked)) { closePanel(); return; }
 
-      let title = 'Wybrany obiekt';
+      let title = 'Selected Property';
       try {
         if (typeof picked.getProperty === 'function') {
           const t = picked.getProperty('name') || picked.getProperty('id') || picked.getProperty('OBJECTID') || picked.getProperty('BIN');
@@ -381,7 +383,7 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
           }
         }
       }
-      dbBox.innerHTML = '<div class="db-head">Baza</div><div class="db-row"><div class="k">Ładowanie…</div><div class="v"></div></div>';
+      dbBox.innerHTML = '<div class="db-head">Database</div><div class="db-row"><div class="k">Loading…</div><div class="v"></div></div>';
 
 
       function sanitizeId(v) {
@@ -407,7 +409,7 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
       console.log('[DB] click id =', id, 'props keys =', picked?.getPropertyIds?.());
 
       if (!id) {
-          dbBox.innerHTML = '<div class="db-head">Baza</div><div class="db-row"><div class="k">Brak ID_FME</div><div class="v">Nie znaleziono w kafelku</div></div>';
+          dbBox.innerHTML = '<div class="db-head">Database</div><div class="db-row"><div class="k">No ID_FME</div><div class="v">Not found in tile</div></div>';
           return;
         } else {
         const url = `/api/house/${encodeURIComponent(id)}/`;
@@ -432,9 +434,9 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
               console.warn('[analytics] click log failed', e);
             }
 
-            const makeRow = (k, v) => (v == null || v === '')
+            const makeRow = (k, v, raw) => (v == null || v === '')
               ? ''
-              : `<div class="db-row"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+              : `<div class="db-row"><div class="k">${escHtml(k)}</div><div class="v">${raw ? v : escHtml(String(v))}</div></div>`;
 
 
             const currentUserId = await whoamiId();
@@ -455,7 +457,7 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
             if (owners.length) {
               const rows = owners.map(o => {
                 const sellerId  = o.user_id;
-                const uname     = o.username || `User ${sellerId ?? ''}`;
+                const uname     = escHtml(o.username || `User ${sellerId ?? ''}`);
                 const shares    = o.shares;
                 let   perc      = o.percent;
 
@@ -469,8 +471,8 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                 const isMe       = currentUserId && String(sellerId) === String(currentUserId);
                 const lst        = listingsBySeller.get(String(sellerId)) || null;
                 const hasListing = !!lst;
-                const priceTxt   = (lst && lst.price != null) ? `$${lst.price}` : '';
-                const shCount    = (lst && lst.share_count != null) ? lst.share_count : null;
+                const priceTxt   = (lst && lst.price != null) ? `$${escHtml(lst.price)}` : '';
+                const shCount    = (lst && lst.share_count != null) ? escHtml(lst.share_count) : null;
 
                 let actionsHtml = '';
 
@@ -483,18 +485,18 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                     actionsHtml = `
                       <div class="owner-listing-row">
                         <span class="owner-listing">${listingInfo}</span>
-                        <button class="btn fp-owner-edit" data-listing-id="${lst.id}">Edit price</button>
-                        <button class="btn fp-owner-end"  data-listing-id="${lst.id}">End listing</button>
+                        <button class="btn fp-owner-edit" data-listing-id="${escHtml(lst.id)}">Edit price</button>
+                        <button class="btn fp-owner-end"  data-listing-id="${escHtml(lst.id)}">End listing</button>
                       </div>`;
                   } else {
                     actionsHtml = `
                       <div class="owner-listing-row">
                         <span class="owner-listing">${listingInfo}</span>
                         <button class="btn fp-owner-buy"
-                                data-listing-id="${lst.id}"
-                                data-seller-id="${sellerId}">Buy</button>
+                                data-listing-id="${escHtml(lst.id)}"
+                                data-seller-id="${escHtml(sellerId)}">Buy</button>
                         <button class="btn fp-owner-msg"
-                                data-seller-id="${sellerId}">Send message</button>
+                                data-seller-id="${escHtml(sellerId)}">Send message</button>
                       </div>`;
                   }
                 } else {
@@ -502,22 +504,22 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                     actionsHtml = `
                       <div class="owner-listing-row">
                         <button class="btn fp-owner-msg"
-                                data-seller-id="${sellerId}">Send message</button>
+                                data-seller-id="${escHtml(sellerId)}">Send message</button>
                       </div>`;
                   } else {
                     actionsHtml = `
                       <div class="owner-listing-row">
                         <button class="btn fp-owner-sell"
-                                data-owner-id="${sellerId}">Sell</button>
+                                data-owner-id="${escHtml(sellerId)}">Sell</button>
                       </div>`;
                   }
                 }
 
                 return `
-                  <div class="owner-row" data-owner-id="${sellerId}">
+                  <div class="owner-row" data-owner-id="${escHtml(sellerId)}">
                     <div class="owner-main">
                       <span class="owner-name">${uname}</span>
-                      <span class="owner-shares">${shares}${percTxt}</span>
+                      <span class="owner-shares">${escHtml(shares)}${escHtml(percTxt)}</span>
                     </div>
                     <div class="owner-actions">
                       ${actionsHtml}
@@ -548,9 +550,9 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
 
             const rows =
               makeRow('ID_FME', d.id_fme ?? id) +
-              makeRow('Nazwa', d.name) +
-              makeRow('Piętra', d.levels) +
-              makeRow('Wysokość', d.height != null ? `${d.height} m` : null) +
+              makeRow('Name', d.name) +
+              makeRow('Floors', d.levels) +
+              makeRow('Height', d.height != null ? `${d.height} m` : null) +
               makeRow(
                 'Lat/Lon',
                 (d.lat != null && d.lon != null)
@@ -558,10 +560,10 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
                   : null
               ) +
               makeRow('H3', [d.h3_id, d.h3_res != null ? ('@' + d.h3_res) : ''].filter(Boolean).join(' ')) +
-              (isFractional ? makeRow('Udziały', `${totalShares}`) : '') +
-              (ownersBlock ? makeRow('Współwłaściciele', ownersBlock) : '');
+              (isFractional ? makeRow('Shares', `${totalShares}`) : '') +
+              (ownersBlock ? makeRow('Co-owners', ownersBlock, true) : '');
 
-            dbBox.innerHTML = '<div class="db-head">Baza</div>' + (rows || '<div class="db-row"><div class="k">Brak danych</div><div class="v"></div></div>');
+            dbBox.innerHTML = '<div class="db-head">Database</div>' + (rows || '<div class="db-row"><div class="k">No data</div><div class="v"></div></div>');
 
             const msgBtn = document.getElementById('fpMessage');
             if (msgBtn) {
@@ -811,7 +813,7 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
               } else if (currentUserId && hasShares) {
               } else if (currentUserId && !hasShares && ownersArr.length > 0) {
                 actionsHtml += '<div id="houseActions">' +
-                              '  <button class="btn btn-danger" id="takeoverBtn">Przejęcie</button>' +
+                              '  <button class="btn btn-danger" id="takeoverBtn">Takeover</button>' +
                               '</div>';
               }
 
@@ -861,7 +863,7 @@ function sendClickAnalytics(userId, idFme, lat, lon, h3) {
 
             })
           .catch(e => {
-            dbBox.innerHTML = '<div class="db-head">Baza</div><div class="db-row"><div class="k">Błąd</div><div class="v">' + (e.message || 'Nieznany błąd') + '</div></div>';
+            dbBox.innerHTML = '<div class="db-head">Database</div><div class="db-row"><div class="k">Error</div><div class="v">' + escHtml(e.message || 'Unknown error') + '</div></div>';
           });
 
       }

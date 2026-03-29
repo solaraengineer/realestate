@@ -13,6 +13,7 @@
 
   let listPollTimer = null;
   const parseTs = s => (s ? Date.parse(s) || 0 : 0);
+  function escHtml(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
   window.stopMessagesPolling = function () {
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
@@ -22,27 +23,27 @@
   };
 
   const T = {
-    title: 'Wiadomości',
-    groups: 'Grupy (Domy)',
-    threads: 'Wątki',
-    write: 'Wpisz wiadomość…',
-    send: 'Wyślij',
-    price: 'Cena',
-    makeOffer: 'Składam ofertę',
-    sendOffer: 'Złóż ofertę',
-    cancel: 'Anuluj',
-    accept: 'Zgoda',
-    counter: 'Moja oferta',
-    sendCounter: 'Złóż kontrofertę',
-    finalize: 'Kupuję',
+    title: 'Messages',
+    groups: 'Groups (Properties)',
+    threads: 'Threads',
+    write: 'Type a message…',
+    send: 'Send',
+    price: 'Price',
+    makeOffer: 'I\'m making an offer',
+    sendOffer: 'Make Offer',
+    cancel: 'Cancel',
+    accept: 'Accept',
+    counter: 'My Offer',
+    sendCounter: 'Counter Offer',
+    finalize: 'Buy',
     stop: 'Stop',
     resumeThread: 'Resume thread',
-    loading: 'Ładowanie…',
-    noThreads: 'Brak wątków',
+    loading: 'Loading…',
+    noThreads: 'No threads',
 
-    buyerOffer: 'Oferta kupującego',
-    sellerOffer: 'Oferta sprzedającego',
-    yourOffer: 'Twoja oferta',
+    buyerOffer: 'Buyer\'s offer',
+    sellerOffer: 'Seller\'s offer',
+    yourOffer: 'Your offer',
   };
 
 
@@ -104,7 +105,7 @@
       state.prepared.house.name ||
       state.prepared.house.id_fme ||
       state.prepared.house.id ||
-      '(dom)';
+      '(property)';
 
     const exists = state.groups.some(g => g.house === label);
     if (!exists) {
@@ -117,7 +118,7 @@
   function msgHTML(m) {
     const mine = String(m.sender_id) === String(window.currentUserId || '');
     const whoLabel = mine ? 'You' : (m.sender_name || '');
-    const head = `<div class="msg-head"><span class="who">${whoLabel}, </span><span class="when">${new Date(m.time).toLocaleString()}</span></div>`;
+    const head = `<div class="msg-head"><span class="who">${escHtml(whoLabel)}, </span><span class="when">${new Date(m.time).toLocaleString()}</span></div>`;
     const body = `<div class="msg-body">${String(m.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')}</div>`;
     return `<div class="msgx-bubble ${mine ? 'mine' : 'theirs'}">${head}${body}</div>`;
   }
@@ -170,7 +171,7 @@
       if (buyer != null) {
         const priceStr = fmtPrice(buyer);
         if (buyerShares != null) {
-          bEl.textContent = `${priceStr} (${buyerShares} udz.)`;
+          bEl.textContent = `${priceStr} (${buyerShares} shares)`;
         } else {
           bEl.textContent = priceStr;
         }
@@ -245,8 +246,8 @@
           <div class="msgx-head">
             <span>${T.groups}</span>
             <span style="float:right; display:flex; gap:4px;">
-              <button class="msgx-chip js-show-active">Aktualne</button>
-              <button class="msgx-chip js-show-archived">Archiwum</button>
+              <button class="msgx-chip js-show-active">Current</button>
+              <button class="msgx-chip js-show-archived">Archive</button>
             </span>
           </div>
           <div class="msgx-list js-groups"></div>
@@ -284,8 +285,8 @@
   function composerDisabledHTML() {
     return `
       <div class="msgx-quick" style="opacity:.85;color:#e7ecef">
-        Wybierz dom na mapie i kliknij „Wyślij wiadomość"<br>
-        lub otwórz istniejący wątek z listy.
+        Select a property on the map and click "Send message"<br>
+        or open an existing thread from the list.
       </div>`;
   }
   function composerOfferHTML() {
@@ -366,7 +367,7 @@
     const box = appBody.querySelector('.js-groups');
     if (!box) return;
     box.innerHTML = state.groups.map((g,i)=>`
-      <div class="msgx-item ${i===state.groupIdx?'active':''}" data-g="${i}">${g.house}</div>
+      <div class="msgx-item ${i===state.groupIdx?'active':''}" data-g="${i}">${escHtml(g.house)}</div>
     `).join('');
     box.querySelectorAll('.msgx-item').forEach(el=>{
       el.addEventListener('click', ()=>{
@@ -404,7 +405,7 @@
     }
     box.innerHTML = state.threads.map((t,i)=>`
       <div class="msgx-item ${i===state.threadIdx?'active':''}" data-t="${i}">
-        ${t.other_user}
+        ${escHtml(t.other_user)}
       </div>
     `).join('');
     box.querySelectorAll('.msgx-item').forEach(el=>{
@@ -442,7 +443,7 @@
       const bodyEl = appBody.querySelector('.js-chat-body');
       if (bodyEl) {
         bodyEl.innerHTML = `<div class="msgx-bubble theirs">
-          <div class="msg-body">Błąd wczytywania wątku: ${String(e.message || e)}</div>
+          <div class="msg-body">Error loading thread: ${escHtml(String(e.message || e))}</div>
         </div>`;
       }
       state.lastSeen.set(convId, new Date().toISOString());
@@ -455,7 +456,7 @@
     const t = state.threads[state.threadIdx];
     const titleEl = appBody.querySelector('.js-chat-title');
     if (titleEl) {
-      titleEl.textContent = `Wątek: ${t?.other_user || ''} (${g?.house || ''})`;
+      titleEl.textContent = `Thread: ${t?.other_user || ''} (${g?.house || ''})`;
     }
 
     const bodyEl = appBody.querySelector('.js-chat-body');
@@ -609,14 +610,14 @@
           sendBtn.addEventListener('click', async () => {
             const price  = (priceEl  && priceEl.value  ? priceEl.value.trim()  : '');
             const shares = (sharesEl && sharesEl.value ? sharesEl.value.trim() : '');
-            if (!price)  { window.Modal?.alert('Podaj kwotę', 'Brak danych', 'warning'); return; }
-            if (!shares) { window.Modal?.alert('Podaj liczbę udziałów', 'Brak danych', 'warning'); return; }
+            if (!price)  { window.Modal?.alert('Enter amount', 'No data', 'warning'); return; }
+            if (!shares) { window.Modal?.alert('Enter number of shares', 'No data', 'warning'); return; }
             try {
               await ensureStart();
               await jpost(API.offer(state.currentConvId), { price, shares });
               await openThread(state.currentConvId);
             } catch (err) {
-              window.Modal?.alert((err && err.message) || 'Błąd wysyłania oferty', 'Błąd', 'error');
+              window.Modal?.alert((err && err.message) || 'Send error', 'Error', 'error');
             }
           });
         }
@@ -658,15 +659,15 @@
           sendBtn.addEventListener('click', async () => {
             const price  = (priceEl  && priceEl.value  ? priceEl.value.trim()  : '');
             const shares = (sharesEl && sharesEl.value ? sharesEl.value.trim() : '');
-            if (!price)  { window.Modal?.alert('Podaj kwotę', 'Brak danych', 'warning'); return; }
-            if (!shares) { window.Modal?.alert('Podaj liczbę udziałów', 'Brak danych', 'warning'); return; }
+            if (!price)  { window.Modal?.alert('Enter amount', 'No data', 'warning'); return; }
+            if (!shares) { window.Modal?.alert('Enter number of shares', 'No data', 'warning'); return; }
 
             try {
               await ensureStart();
               await jpost(API.offer(state.currentConvId), { price, shares });
               await openThread(state.currentConvId);
             } catch (err) {
-              window.Modal?.alert((err && err.message) || 'Błąd wysyłania oferty', 'Błąd', 'error');
+              window.Modal?.alert((err && err.message) || 'Send error', 'Error', 'error');
             }
           });
         }
@@ -691,7 +692,7 @@
           if (input) input.value = '';
           await openThread(state.currentConvId);
         } catch (err) {
-          window.Modal?.alert((err && err.message) || 'Błąd wysyłania', 'Błąd', 'error');
+          window.Modal?.alert((err && err.message) || 'Send error', 'Error', 'error');
         }
         return;
       }
@@ -702,7 +703,7 @@
     async function ensureStart() {
       const id_fme = (window.__lastPickedIdFME || '').trim();
       if (!id_fme || !state?.prepared || !state.prepared.can_message) {
-        window.Modal?.alert('Najpierw kliknij dom i wybierz „Wyślij wiadomość".', 'Wybierz dom', 'info');
+        window.Modal?.alert('First click a property and select "Send message".', 'Select property', 'info');
         throw new Error('no-thread-start-guard');
       }
       const payload = { id_fme };
@@ -761,8 +762,8 @@
       const sellerHas = deal.seller != null;
       const status    = threadData?.status;
 
-      if (counterBtn) counterBtn.textContent = 'Moja oferta';
-      if (finalBtn)   finalBtn.textContent   = (role === 'seller') ? 'Sprzedaję' : T.finalize;
+      if (counterBtn) counterBtn.textContent = 'My Offer';
+      if (finalBtn)   finalBtn.textContent   = (role === 'seller') ? 'Sell' : T.finalize;
       if (makeBtn)    makeBtn.style.display  = 'none';
 
       if (role === 'seller' && !buyerHas) {
@@ -807,13 +808,13 @@
           sendPriceBtn.addEventListener('click', async () => {
             const price  = (priceEl  && priceEl.value  ? priceEl.value.trim()  : '');
             const shares = (sharesEl && sharesEl.value ? sharesEl.value.trim() : '');
-            if (!price)  { window.Modal?.alert('Podaj kwotę', 'Brak danych', 'warning'); return; }
-            if (!shares) { window.Modal?.alert('Podaj liczbę udziałów', 'Brak danych', 'warning'); return; }
+            if (!price)  { window.Modal?.alert('Enter amount', 'No data', 'warning'); return; }
+            if (!shares) { window.Modal?.alert('Enter number of shares', 'No data', 'warning'); return; }
             try {
               await jpost(API.offer(convId), { price, shares });
               await openThread(convId);
             } catch (e) {
-              window.Modal?.alert((e && e.message) || 'Błąd wysyłania oferty', 'Błąd', 'error');
+              window.Modal?.alert((e && e.message) || 'Send error', 'Error', 'error');
             }
           });
         }
@@ -842,7 +843,7 @@
             await jpost(API.accept(convId), {});
             await openThread(convId);
           } catch (e) {
-            window.Modal?.alert((e && e.message) || 'Nie udało się zaakceptować oferty', 'Błąd', 'error');
+            window.Modal?.alert((e && e.message) || 'Failed to accept offer', 'Error', 'error');
           }
         });
       }
@@ -864,12 +865,12 @@
               const newPr = prep.requested_price;
 
               const msg = (curSh != null)
-                ? `Masz już publiczne ogłoszenie na ${curSh} udziałów za ${curPr}.\n` +
-                  `Ta zgoda zastąpi je nową ofertą: ${newSh} udziałów za ${newPr}.\n` +
-                  `Czy chcesz kontynuować?`
-                : `Masz już publiczne ogłoszenie. Ta zgoda je zastąpi. Kontynuować?`;
+                ? `You already have a public listing for ${curSh} shares at ${curPr}.\n` +
+                  `This agreement will replace it with a new offer: ${newSh} shares at ${newPr}.\n` +
+                  `Do you want to continue?`
+                : `You already have a public listing. This agreement will replace it. Continue?`;
 
-              const confirmed = await window.Modal?.confirm(msg, 'Zmiana ogłoszenia', { confirmText: 'Kontynuuj', cancelText: 'Anuluj' });
+              const confirmed = await window.Modal?.confirm(msg, 'Listing change', { confirmText: 'Continue', cancelText: 'Cancel' });
               if (!confirmed) {
                 return;
               }
@@ -892,7 +893,7 @@
             state.threadIdx = 0;
             buildThreads();
           } catch (e) {
-            window.Modal?.alert((e && e.message) || 'Nie udało się sfinalizować transakcji', 'Błąd', 'error');
+            window.Modal?.alert((e && e.message) || 'Failed to finalize transaction', 'Error', 'error');
           }
         });
       }
@@ -906,7 +907,7 @@
             state.threadIdx = 0;
             buildThreads();
           } catch (e) {
-            window.Modal?.alert((e && e.message) || 'Nie udało się zakończyć rozmowy', 'Błąd', 'error');
+            window.Modal?.alert((e && e.message) || 'Failed to end conversation', 'Error', 'error');
           }
         });
       }
@@ -920,7 +921,7 @@
             input.value = '';
             await openThread(convId);
           } catch (e) {
-            window.Modal?.alert((e && e.message) || 'Błąd wysyłania', 'Błąd', 'error');
+            window.Modal?.alert((e && e.message) || 'Send error', 'Error', 'error');
           }
         });
       }
