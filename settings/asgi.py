@@ -20,8 +20,6 @@ exporter = OTLPSpanExporter(endpoint=os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT
 provider.add_span_processor(BatchSpanProcessor(exporter))
 trace.set_tracer_provider(provider)
 
-django_asgi_app = OpenTelemetryMiddleware(django_asgi_app)
-
 RedisInstrumentor().instrument()
 Psycopg2Instrumentor().instrument()
 CeleryInstrumentor().instrument()
@@ -40,3 +38,5 @@ application = ProtocolTypeRouter(
         ),
     }
 )
+
+application = OpenTelemetryMiddleware(application)
