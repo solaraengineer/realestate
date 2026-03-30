@@ -1,4 +1,8 @@
 import os
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings.settings")
+
+from django.core.asgi import get_asgi_application
+django_asgi_app = get_asgi_application()
 
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
@@ -21,14 +25,8 @@ RedisInstrumentor().instrument()
 Psycopg2Instrumentor().instrument()
 CeleryInstrumentor().instrument()
 
-from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
-
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings.settings")
-
-django_asgi_app = get_asgi_application()
-
 import logic.routing
 
 application = ProtocolTypeRouter(

@@ -1,19 +1,7 @@
 services:
-  postgres_data:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "127.0.0.1:5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - backend
-
   redis:
     image: redis:7-alpine
+    restart: unless-stopped
     volumes:
       - redis_data:/data
     networks:
@@ -22,6 +10,7 @@ services:
 
   web:
     build: .
+    restart: unless-stopped
     volumes:
       - .:/app
     ports:
@@ -39,11 +28,11 @@ services:
       - backend
     depends_on:
       - redis
-      - postgres_data
       - otel-collector
 
   celery:
     build: .
+    restart: unless-stopped
     command: celery -A settings worker --loglevel=info
     volumes:
       - .:/app
@@ -62,11 +51,11 @@ services:
       - backend
     depends_on:
       - redis
-      - postgres_data
       - otel-collector
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.96.0
+    restart: unless-stopped
     command: ["--config", "/etc/otel-collector-config.yaml"]
     volumes:
       - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
@@ -80,6 +69,7 @@ services:
 
   tempo:
     image: grafana/tempo:2.7.0
+    restart: unless-stopped
     command: ["-config.file=/etc/tempo.yaml"]
     volumes:
       - ./tempo.yaml:/etc/tempo.yaml
@@ -91,9 +81,13 @@ services:
 
   prometheus:
     image: prom/prometheus:latest
+    restart: unless-stopped
     volumes:
       - ./prometheus.yaml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.enable-remote-write-receiver'
     networks:
       - backend
     ports:
@@ -103,6 +97,7 @@ services:
 
   grafana:
     image: grafana/grafana:latest
+    restart: unless-stopped
     volumes:
       - grafana_data:/var/lib/grafana
     environment:
@@ -117,7 +112,6 @@ networks:
   backend:
 
 volumes:
-  postgres_data:
   redis_data:
   prometheus_data:
   grafana_data:
