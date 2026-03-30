@@ -60,4 +60,4 @@ opentelemetry-exporter-otlp-proto-grpc
 opentelemetry-instrumentation-django
 opentelemetry-instrumentation-redis
 opentelemetry-instrumentation-psycopg2
-opentelemetry-instrumentation-celery
+opentelemetry-instrumentation-celeryopentelemetry-instrumentation-asgi
